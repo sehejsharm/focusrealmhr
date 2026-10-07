@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="512" height="512" role="img" aria-label="Focus Realm Hospitality">
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e7cd7c"/>
+      <stop offset="55%" stop-color="#dbbc5f"/>
+      <stop offset="100%" stop-color="#c9a94a"/>
+    </linearGradient>
+    <linearGradient id="p" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#1d4044"/>
+      <stop offset="100%" stop-color="#0b2126"/>
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="url(#p)" stroke="url(#s)" stroke-width="2.5"/>
+  <g stroke="#ffffff" stroke-width="3.6" fill="none">
+    <path d="M12 12.5 V 35.5"/>
+    <path d="M10.2 14.3 H 21.5"/>
+    <path d="M10.2 23.4 H 19.4"/>
+  </g>
+  <g stroke="url(#s)" stroke-width="3.6" fill="none">
+    <path d="M27 12.5 V 35.5"/>
+    <path d="M25.2 14.3 H 31.4 A 4.6 4.6 0 0 1 31.4 23.5 H 25.2"/>
+    <path d="M31.2 23.8 L 36.6 35.6"/>
+  </g>
+</svg>

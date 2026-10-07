@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Focus Realm design system
+   One brand across the whole product: deep navy chrome, gold accent, a light
+   working canvas. Tokens live in @theme so they surface as Tailwind utilities
+   (bg-navy-900, text-gold-500, border-line …) instead of ad-hoc hex values.
+   ========================================================================== */
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* Brand — navy */
+  --color-navy-950: #050f1d;
+  --color-navy-900: #081527;
+  --color-navy-800: #0e2038;
+  --color-navy-700: #16304f;
+  --color-navy-600: #1e3f66;
+  --color-navy-500: #21456e;
+  --color-navy-300: #90a4c0;
+
+  /* Brand — gold */
+  --color-gold-600: #a8871d;
+  --color-gold-500: #c9a227;
+  --color-gold-400: #e0c368;
+  --color-gold-100: #f6edd2;
+  --color-gold-50: #fbf7ea;
+
+  /* Working canvas — cool neutrals, so navy and gold stay the only hues */
+  --color-canvas: #f2f4f7;
+  --color-surface: #ffffff;
+  --color-line: #dfe3ea;
+  --color-line-strong: #c8cfda;
+
+  --color-ink-900: #0f1a2a;
+  --color-ink-700: #33415a;
+  --color-ink-600: #47566f;
+  --color-ink-500: #5b6b85;
+  --color-ink-400: #8492a8;
+
+  /* Enterprise elevation — flat, restrained */
+  --shadow-panel: 0 1px 2px rgba(15, 26, 42, 0.06);
+  --shadow-raised: 0 4px 16px -4px rgba(15, 26, 42, 0.14);
+  --shadow-overlay: 0 18px 44px -12px rgba(8, 21, 39, 0.32);
+}
+
+:root {
+  /* Floor staff use this in bright light — one high-contrast theme. */
+  color-scheme: light;
+
+  /* Legacy aliases kept so the onboarding module keeps rendering. */
+  --fr-navy-deep: var(--color-navy-900);
+  --fr-navy: var(--color-navy-800);
+  --fr-navy-soft: var(--color-navy-700);
+  --fr-line: var(--color-navy-500);
+  --fr-gold: var(--color-gold-500);
+  --fr-gold-soft: var(--color-gold-400);
+  --fr-paper: #f5f3ef;
+  --fr-muted: var(--color-navy-300);
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv05", "ss01";
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/*
+ * Tailwind v4's reset returns buttons to cursor: default, so nothing that acts
+ * on click signalled it on hover. :where() keeps specificity at zero, so a
+ * utility such as cursor-not-allowed on a single element still wins.
+ */
+:where(
+    button,
+    [role="button"],
+    summary,
+    select,
+    label:has(> input[type="checkbox"], > input[type="radio"]),
+    input[type="checkbox"],
+    input[type="radio"],
+    input[type="file"],
+    input[type="submit"],
+    input[type="button"]
+  ):not(:disabled, [aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+:where(button, input, select, [role="button"]):is(:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
+
+/* A single, consistent focus treatment for the whole console. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Numeric columns line up — dashboards read as records, not prose. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal scrollers (sub-nav, filter rails) keep their own scrollbar off. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus Realm HR — the same navy & gold, on a dark ground. */
+.fr-root {
+  background-color: var(--color-navy-900);
+  color: var(--fr-paper);
+}
+
+.fr-card {
+  background-color: var(--color-navy-800);
+  border: 1px solid var(--color-navy-500);
+  border-radius: 0.75rem;
+}
+
+.fr-rule {
+  border-color: var(--color-navy-500);
+}
+
+@keyframes mise-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mise-pop {
+  animation: mise-pop 300ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mise-pop {
+    animation: none;
+  }
+}
