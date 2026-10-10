@@ -1,8 +1,10 @@
 import {
   provisionWorkspaceAccount,
   updateWorkspaceAccount,
+  type WorkspaceCandidate,
   type WorkspaceCredentials,
 } from "./workspace-sync.server";
+import { consentCoversWorkspace } from "./compliance";
 import { seal, unseal } from "./security.server";
 import { updateCandidate } from "./store.server";
 import { trackOf, type Candidate } from "./types";
@@ -19,6 +21,31 @@ import { trackOf, type Candidate } from "./types";
  * With FOCUS_REALM_WORKSPACE_URL or FOCUS_REALM_WORKSPACE_SECRET unset, the
  * client sends nothing and returns null, and everything here follows suit.
  */
+
+/**
+ * Exactly what of a candidate may leave for the Workspace. Never the Aadhaar
+ * number or copy, the address or the parent's name — and the phone number only
+ * for someone who consented under a privacy notice that covers the Workspace.
+ */
+function forWorkspace(candidate: Candidate): WorkspaceCandidate {
+  const { details } = candidate;
+  const track = trackOf(candidate);
+
+  return {
+    id: candidate.id,
+    invitedName: candidate.invitedName,
+    invitedEmail: candidate.invitedEmail,
+    startDate: candidate.startDate,
+    mailbox: candidate.mailbox ? { address: candidate.mailbox.address } : null,
+    role: { roleTitle: track.roleTitle, label: track.label },
+    details: details
+      ? {
+          fullName: details.fullName,
+          ...(consentCoversWorkspace(details.consent) ? { phone: details.phone } : {}),
+        }
+      : null,
+  };
+}
 
 /** The client's own "is it configured" check, which it does not export. */
 function workspaceUrl(): string | null {
@@ -76,7 +103,7 @@ export async function recordWorkspaceLogin(
 export async function linkWorkspaceAccount(
   candidate: Candidate,
 ): Promise<{ loginId: string } | null> {
-  const login = await provisionWorkspaceAccount({ ...candidate, role: trackOf(candidate) });
+  const login = await provisionWorkspaceAccount(forWorkspace(candidate));
   if (!login) return null;
 
   await recordWorkspaceLogin(candidate.id, login);
@@ -90,7 +117,7 @@ export async function linkWorkspaceAccount(
  * that login is recorded here like any other rather than lost.
  */
 export async function refreshWorkspaceAccount(candidate: Candidate): Promise<void> {
-  const login = await updateWorkspaceAccount({ ...candidate, role: trackOf(candidate) });
+  const login = await updateWorkspaceAccount(forWorkspace(candidate));
   if (!login) return;
 
   if (login.temporaryPassword || login.loginId !== candidate.workspace?.loginId) {

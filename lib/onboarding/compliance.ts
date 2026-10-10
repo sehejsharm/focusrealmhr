@@ -21,7 +21,26 @@
  * the agreement itself before the module is used with real candidates.
  */
 
-export const PRIVACY_NOTICE_VERSION = "2026-09-11.1";
+export const PRIVACY_NOTICE_VERSION = "2026-10-10.1";
+
+/**
+ * The first notice to cover the Focus Realm Workspace, the team's own app.
+ * Someone who consented under an earlier version never agreed to their data
+ * going there, so the phone number they gave stays out of it; their name,
+ * email, role and start date still go, because a login cannot exist without
+ * them. See lib/onboarding/workspace.server.ts.
+ */
+export const WORKSPACE_NOTICE_VERSION = "2026-10-10.1";
+
+/** Whether a consent was given under a notice that covers the Workspace. */
+export function consentCoversWorkspace(consent: { noticeVersion: string } | null | undefined): boolean {
+  const version = consent?.noticeVersion ?? "";
+  // Versions are "<date it took effect>.<revision that day>", so they sort naturally.
+  return (
+    /^\d{4}-\d{2}-\d{2}\.\d+$/.test(version) &&
+    version.localeCompare(WORKSPACE_NOTICE_VERSION, "en", { numeric: true }) >= 0
+  );
+}
 
 /** Overridable per deployment — these appear in the notice the candidate reads. */
 export const DATA_FIDUCIARY = {
@@ -37,6 +56,7 @@ export const PURPOSES = [
   "To verify that you are the person the internship was offered to.",
   "To run and record your onboarding — the handbooks, briefings and assessments.",
   "To create your company mailbox once your agreement is verified.",
+  "To give you a login to the Focus Realm Workspace, the team's own app, and keep your name, role and contact details there up to date.",
   "To keep the records the Company is required to keep about its engagements.",
 ] as const;
 

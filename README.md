@@ -115,6 +115,14 @@ With either unset, every Workspace call is skipped silently and the console
 works exactly as before. Once both are set, press **Sync everyone to the
 Workspace** so the people already here get a login too.
 
+**What it receives.** Name, role, start date, email (the invitation address
+until a company mailbox exists) and phone — never the Aadhaar number or copy,
+the address or the parent's name. The phone number goes only for people who
+consented under privacy notice `2026-10-10.1` or later, the first to cover the
+Workspace; anyone who consented earlier keeps theirs out
+(`consentCoversWorkspace` in `lib/onboarding/compliance.ts`, applied in
+`lib/onboarding/workspace.server.ts`).
+
 **Credentials.** The temporary password is handled like the mailbox one:
 encrypted at rest with `ONBOARDING_SECRET`, and shown **once** — to a founder
 on the person's record, or to the person themselves on the last step of

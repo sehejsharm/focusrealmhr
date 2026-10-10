@@ -100,7 +100,7 @@ export default function DetailsStage({
       <SectionTitle
         eyebrow="Step 1 of 6"
         title="Your details"
-        lead="We need these to draw up your internship agreement. They go to the founders only, and are used for the contract and nothing else."
+        lead="We need these to draw up your internship agreement. Only the founders see them, except your name and phone number, which also go on your Focus Realm Workspace profile for your colleagues to see."
       />
 
       <div
