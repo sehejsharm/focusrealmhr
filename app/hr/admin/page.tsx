@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Award, Copy, LogOut, FileWarning, Plus, RefreshCw, UserPlus } from "lucide-react";
+import { AlertTriangle, Award, Copy, KeyRound, LogOut, FileWarning, Plus, RefreshCw, UserPlus } from "lucide-react";
 import {
   Button,
   Card,
@@ -361,6 +361,8 @@ export default function AdminConsole() {
           </ul>
         </Card>
       )}
+
+      {rows && <WorkspaceSync onSynced={load} />}
     </div>
   );
 }
@@ -844,6 +846,97 @@ function NewCandidate({
           {busy ? (isExisting ? "Adding…" : "Creating…") : isExisting ? "Add to roster" : "Create and generate link"}
         </Button>
       </form>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Focus Realm Workspace                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface SyncResult {
+  synced: number;
+  alreadyLinked: number;
+  /** Removed people, left out of the Workspace. */
+  skipped: number;
+  failed: { id: string; name: string; error: string }[];
+}
+
+/**
+ * Everyone added here gets a Workspace login the moment they are created.
+ * This catches up everyone else: people added before the two apps were
+ * connected, or whose login could not be created at the time.
+ */
+function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<SyncResult | null>(null);
+
+  async function sync() {
+    setBusy(true);
+    setMessage(null);
+    setResult(null);
+
+    const response = await fetch("/api/onboarding/admin/workspace/sync", { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!response.ok) {
+      setMessage(data.error ?? "Could not sync with the Workspace.");
+      return;
+    }
+    setResult(data as SyncResult);
+    onSynced();
+  }
+
+  return (
+    <Card className="mt-5">
+      <SectionTitle
+        title="Focus Realm Workspace"
+        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. This gives one to everyone who does not have one yet, such as people added before the Workspace was connected. Anyone already linked is skipped, so it is safe to run again."
+      />
+      <div className="space-y-4">
+        <Button disabled={busy} onClick={sync}>
+          <KeyRound className="size-4" aria-hidden />
+          {busy ? "Syncing…" : "Sync everyone to the Workspace"}
+        </Button>
+
+        {message && <Notice tone="bad">{message}</Notice>}
+
+        {result && (
+          <>
+            <Notice tone={result.failed.length > 0 ? "warn" : "good"}>
+              {result.synced} new login{result.synced === 1 ? "" : "s"} · {result.alreadyLinked} already
+              linked · {result.failed.length} failed
+              {result.skipped > 0
+                ? ` · ${result.skipped} removed ${result.skipped === 1 ? "person" : "people"} left out`
+                : ""}
+              .
+              {result.synced > 0 &&
+                " Open a person's record to reveal their temporary password, or let them collect it on their own page."}
+            </Notice>
+
+            {result.failed.length > 0 && (
+              <ul className="space-y-2">
+                {result.failed.map((failure) => (
+                  <li
+                    key={failure.id}
+                    className="rounded-xl border p-3 text-sm"
+                    style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+                  >
+                    <Link href={`/hr/admin/${failure.id}`} className="font-bold hover:underline">
+                      {failure.name}
+                    </Link>
+                    <span className="mt-0.5 block text-xs" style={{ color: "var(--fr-muted)" }}>
+                      {failure.error}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
     </Card>
   );
 }

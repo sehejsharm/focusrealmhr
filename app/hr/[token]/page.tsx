@@ -10,6 +10,7 @@ import LearningStage from "@/components/onboarding/LearningStage";
 import MailboxStage from "@/components/onboarding/MailboxStage";
 import StageRail from "@/components/onboarding/StageRail";
 import TestsStage from "@/components/onboarding/TestsStage";
+import WorkspaceAccess from "@/components/onboarding/WorkspaceAccess";
 import { Card, Notice, SectionTitle, Wordmark, formatDate } from "@/components/onboarding/ui";
 import { companyLabel } from "@/lib/onboarding/content";
 import { stageIndex } from "@/lib/onboarding/stage";
@@ -121,6 +122,10 @@ function Onboarding({
         <TestsStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 2} />
         <ContractStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 3} />
         <MailboxStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 5} />
+        {/* The Workspace login opens on the last step, alongside the mailbox. */}
+        {candidate.workspace && at >= stageIndex("email") && (
+          <WorkspaceAccess token={token} workspace={candidate.workspace} />
+        )}
       </div>
 
       <Footer />
@@ -205,6 +210,8 @@ function EmployeeHome({
         </Card>
 
         {showMailbox && <MailboxStage token={token} candidate={candidate} onSaved={onSaved} locked={false} inPortal />}
+
+        {candidate.workspace && <WorkspaceAccess token={token} workspace={candidate.workspace} />}
 
         {!candidate.existing && (
           <details className="group fr-card">

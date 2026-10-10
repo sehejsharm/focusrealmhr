@@ -3,6 +3,7 @@ import { getCandidateByToken, saveUpload, updateCandidate } from "@/lib/onboardi
 import { isValidAadhaar, normaliseAadhaar } from "@/lib/onboarding/security.server";
 import { toCandidateView } from "@/lib/onboarding/view";
 import { PRIVACY_NOTICE_VERSION, missingConsents } from "@/lib/onboarding/compliance";
+import { refreshWorkspaceAccount } from "@/lib/onboarding/workspace.server";
 import type { CandidateDetails, ConsentRecord } from "@/lib/onboarding/types";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -97,6 +98,9 @@ export async function POST(
 
   const updated = await updateCandidate(candidate.id, (c) => ({ ...c, details }));
   if (!updated) return error("Could not save your details.", 500);
+
+  // The Workspace picks up their full name and phone. Never holds up the submission.
+  await refreshWorkspaceAccount(updated).catch(console.error);
 
   return json(toCandidateView(updated));
 }

@@ -81,6 +81,54 @@ either one. The service-role key is the only way in, and it is used
 server-side only. Concurrent writes retry against fresh state rather than
 overwriting, so quick successive actions can't clobber each other.
 
+## Focus Realm Workspace
+
+Everyone added here also gets a login to the Focus Realm Workspace, the team's
+employee app ([sehejsharm/employee-management](https://github.com/sehejsharm/employee-management)):
+an **employee ID** such as `FR-0042` and a **temporary password**. They sign in
+with those and choose their own password the first time.
+
+The two apps talk through one signed endpoint on the Workspace; its
+`docs/HR_CONSOLE_INTEGRATION.md` has the contract. The client,
+`lib/onboarding/workspace-sync.server.ts`, is copied verbatim from that
+repository — replace it wholesale rather than editing it.
+`lib/onboarding/workspace.server.ts` records what comes back.
+
+| Happens here | In the Workspace |
+|---|---|
+| A candidate or existing employee is added | Account created; the temporary password is sealed on their record |
+| They submit their details | Full name and phone updated |
+| Their company mailbox is recorded | Their sign-in email becomes the mailbox |
+| A founder removes them | Locked out and signed out on every device; history kept |
+| A founder restores them | Can sign in again |
+| **Reset Workspace password**, on their record | A new temporary password, sealed the same way; signed out everywhere |
+| **Sync everyone to the Workspace**, foot of `/hr/admin` | Everyone without a login gets one; safe to run again |
+
+**Setup.** Set both, server-side only — never with a `NEXT_PUBLIC_` prefix:
+
+| Variable | Value |
+|---|---|
+| `FOCUS_REALM_WORKSPACE_URL` | The Workspace's address, e.g. `https://workspace.focusrealm.com` |
+| `FOCUS_REALM_WORKSPACE_SECRET` | The same value as `HR_WEBHOOK_SECRET` on the Workspace (`openssl rand -hex 32`) |
+
+With either unset, every Workspace call is skipped silently and the console
+works exactly as before. Once both are set, press **Sync everyone to the
+Workspace** so the people already here get a login too.
+
+**Credentials.** The temporary password is handled like the mailbox one:
+encrypted at rest with `ONBOARDING_SECRET`, and shown **once** — to a founder
+on the person's record, or to the person themselves on the last step of
+onboarding (and in their portal after it), whoever opens it first — then
+destroyed. It never appears in the candidate list, in logs, or in any response
+but that one-time reveal. Hand it over in person, never by email or chat. If
+it is lost, **Reset Workspace password** issues a new one.
+
+A Workspace call never holds up an HR action. If the Workspace is down, the
+person is created, updated or removed here all the same, and the error is
+logged: re-run the sync to give anyone who missed out a login, and check the
+Workspace's admin → HR console screen after removing someone while it was
+down, since that removal will not have locked them out there.
+
 ## Deploying to Vercel
 
 1. Import the repo — Next.js is detected, no build settings needed.

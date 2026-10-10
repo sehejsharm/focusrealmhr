@@ -13,6 +13,19 @@ import {
   isDeclined,
 } from "@/lib/onboarding/certificates";
 import { offboardingLinkAvailable, offboardingState } from "@/lib/onboarding/offboarding";
+import {
+  offboardWorkspaceAccount,
+  resetWorkspacePassword,
+  restoreWorkspaceAccount,
+} from "@/lib/onboarding/workspace-sync.server";
+import {
+  claimWorkspacePassword,
+  describeWorkspaceFailure,
+  recordWorkspaceLogin,
+  refreshWorkspaceAccount,
+  workspaceConfigured,
+  workspaceLoginUrl,
+} from "@/lib/onboarding/workspace.server";
 import { randomBytes } from "node:crypto";
 
 /** `FR-IC-2026-7K3QX9` — completion; `FR-LR-…` — recommendation letter. */
@@ -33,7 +46,7 @@ export async function GET(
   const candidate = await getCandidate(id);
   if (!candidate) return error("Not found.", 404);
 
-  const { mailbox, ...rest } = candidate;
+  const { mailbox, workspace, ...rest } = candidate;
   const offboarding = offboardingState(candidate);
 
   return json({
@@ -58,6 +71,17 @@ export async function GET(
           collected: !mailbox.sealedPassword,
         }
       : null,
+    // Nor is the sealed Workspace password — it comes only from the one-time reveal.
+    workspace: workspace
+      ? {
+          loginId: workspace.loginId,
+          provisionedAt: workspace.provisionedAt,
+          viewedAt: workspace.viewedAt ?? null,
+          collected: !workspace.sealedPassword,
+        }
+      : null,
+    // Null while the Workspace connection is switched off.
+    workspaceLoginUrl: workspaceLoginUrl(),
   });
 }
 
@@ -121,6 +145,8 @@ export async function POST(
         // The store keys token lookups off this, which is what shuts the link.
         archivedAt: now,
       }));
+      // Locks them out of the Workspace too, and signs them out everywhere.
+      await offboardWorkspaceAccount(id, reason).catch(console.error);
       return json({ ok: true, retention: updated ? retentionOf(updated) : null });
     }
 
@@ -128,6 +154,7 @@ export async function POST(
       if (!candidate.removal) return error("This person is not removed.", 409);
 
       await updateCandidate(id, (c) => ({ ...c, removal: undefined, archivedAt: undefined }));
+      await restoreWorkspaceAccount(id).catch(console.error);
       return json({ ok: true });
     }
 
@@ -193,6 +220,9 @@ export async function POST(
           sealedPassword: seal(password),
         },
       }));
+
+      // Their Workspace sign-in email becomes the new company mailbox.
+      if (updated) await refreshWorkspaceAccount(updated).catch(console.error);
 
       return json({
         ok: true,
@@ -325,6 +355,53 @@ export async function POST(
         declinedCertificates: (c.declinedCertificates ?? []).filter((k) => k !== kind),
       }));
       return json({ ok: true });
+    }
+
+    /*
+     * The Workspace's temporary password, shown once — the mailbox rule. Whoever
+     * opens it first sees it, a founder here or the candidate on their own page;
+     * after that it is destroyed, and only a reset issues another.
+     */
+    case "reveal-workspace-password": {
+      if (!candidate.workspace) return error("They do not have a Workspace login yet.", 409);
+
+      const password = candidate.workspace.sealedPassword ? await claimWorkspacePassword(id) : null;
+      return json({
+        loginId: candidate.workspace.loginId,
+        password,
+        alreadyViewed: !password,
+        loginUrl: workspaceLoginUrl(),
+      });
+    }
+
+    // A fresh temporary password, and signed out of the Workspace everywhere.
+    // The new one is sealed and revealed exactly like the first.
+    case "reset-workspace-password": {
+      if (!candidate.workspace) return error("They do not have a Workspace login yet.", 409);
+      if (!workspaceConfigured()) {
+        return error(
+          "The Workspace is not connected. Set FOCUS_REALM_WORKSPACE_URL and FOCUS_REALM_WORKSPACE_SECRET first.",
+          409,
+        );
+      }
+
+      let login;
+      try {
+        login = await resetWorkspacePassword(id);
+      } catch (cause) {
+        console.error("Workspace password reset failed", cause);
+        return error(describeWorkspaceFailure(cause).message, 502);
+      }
+      if (!login?.temporaryPassword) return error("The Workspace did not issue a new password.", 502);
+
+      const saved = await recordWorkspaceLogin(id, login).catch((cause) => {
+        console.error("Could not save the reset Workspace password", cause);
+        return null;
+      });
+      if (!saved) {
+        return error("The Workspace issued a new password, but it could not be saved here. Reset it again.", 500);
+      }
+      return json({ ok: true, loginId: login.loginId });
     }
 
     default:

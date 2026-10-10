@@ -225,6 +225,23 @@ export interface Mailbox {
   sealedPassword?: string;
 }
 
+/**
+ * Their login to the Focus Realm Workspace, the team's employee app. Created
+ * when the candidate is — see lib/onboarding/workspace.server.ts.
+ */
+export interface WorkspaceLogin {
+  /** The employee ID they sign in with, e.g. FR-0042. */
+  loginId: string;
+  provisionedAt: string;
+  /** Set once the temporary password has been viewed. */
+  viewedAt?: string;
+  /**
+   * Temporary password, sealed like the mailbox one and destroyed after a
+   * single view. Absent once viewed, or when the Workspace issued none.
+   */
+  sealedPassword?: string;
+}
+
 export interface Candidate {
   id: string;
   /** Unguessable value in the onboarding link. Treat as a bearer credential. */
@@ -266,6 +283,8 @@ export interface Candidate {
   contractRejection?: { note: string; at: string };
   emailRequestedAt?: string;
   mailbox?: Mailbox;
+  /** The Focus Realm Workspace login, created when the candidate was. */
+  workspace?: WorkspaceLogin;
   /** Every completion certificate and recommendation letter issued, oldest first. */
   certificates?: IssuedCertificate[];
   /**
@@ -305,6 +324,8 @@ export interface CandidateView {
   contractRejection: { note: string; at: string } | null;
   emailRequestedAt: string | null;
   mailbox: { address: string; viewed: boolean } | null;
+  /** Their Workspace login ID. The password itself only comes from the one-time reveal. */
+  workspace: { loginId: string; viewed: boolean } | null;
   /** Added directly as an existing employee — there was no onboarding. */
   existing: boolean;
 }

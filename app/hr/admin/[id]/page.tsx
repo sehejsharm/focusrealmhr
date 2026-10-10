@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Award, Check, Copy, Download, ExternalLink, FileWarning, LogOut, Mail, RotateCcw, Upload, UserMinus, X } from "lucide-react";
+import { ArrowLeft, Award, Check, Copy, Download, ExternalLink, Eye, FileWarning, LogOut, Mail, RotateCcw, Upload, UserMinus, X } from "lucide-react";
 import ContractDocument from "@/components/onboarding/ContractDocument";
 import {
   Button,
@@ -38,7 +38,7 @@ import { formatLongDate } from "@/lib/onboarding/contract";
 import type { CertificateKind, CertificateText, CertificateWindow } from "@/lib/onboarding/types";
 import { EXIT_QUESTIONS, OFFBOARDING_LINK_DAYS_BEFORE_END, type OffboardingState } from "@/lib/onboarding/offboarding";
 
-interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies"> {
+interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "workspace"> {
   stage: Stage;
   /** Resolved by the API — records predating the choice come back as both. */
   companies: Company[];
@@ -55,6 +55,16 @@ interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies"> {
   offboardingState: OffboardingState;
   /** Path of the offboarding link, once it can be sent. */
   offboardingLink: string | null;
+  /** Their Focus Realm Workspace login. The sealed password never leaves the server. */
+  workspace: {
+    loginId: string;
+    provisionedAt: string;
+    viewedAt: string | null;
+    /** False while a temporary password is waiting to be collected. */
+    collected: boolean;
+  } | null;
+  /** Where people sign in to the Workspace — null while the connection is off. */
+  workspaceLoginUrl: string | null;
 }
 
 /** One candidate: their documents, and the decisions only a founder can make. */
@@ -189,6 +199,17 @@ export default function AdminCandidatePage() {
           <PortalAccess
             token={candidate.token}
             existing={Boolean(candidate.existing)}
+          />
+        )}
+
+        {(candidate.workspace || (candidate.workspaceLoginUrl && !frozen)) && (
+          <WorkspaceCard
+            name={details?.fullName ?? candidate.invitedName}
+            workspace={candidate.workspace}
+            loginUrl={candidate.workspaceLoginUrl}
+            frozen={frozen}
+            onReveal={() => act({ action: "reveal-workspace-password" })}
+            onReset={() => act({ action: "reset-workspace-password" })}
           />
         )}
 
@@ -870,6 +891,125 @@ function CopyableLink({ link }: { link: string }) {
         {copied ? "Copied" : "Copy link"}
       </Button>
     </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Workspace login                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Their login to the Focus Realm Workspace. The temporary password is shown
+ * once, like the mailbox one: to a founder here, or to them on their own page,
+ * whoever opens it first.
+ */
+function WorkspaceCard({
+  name,
+  workspace,
+  loginUrl,
+  frozen,
+  onReveal,
+  onReset,
+}: {
+  name: string;
+  workspace: AdminCandidate["workspace"];
+  loginUrl: string | null;
+  frozen: boolean;
+  onReveal: () => Promise<{ password: string | null } | null>;
+  onReset: () => Promise<unknown>;
+}) {
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (!workspace) {
+    return (
+      <Card>
+        <SectionTitle
+          title="Workspace login"
+          lead={`${name} does not have a Workspace login yet. "Sync everyone to the Workspace", at the foot of the console, creates one.`}
+        />
+      </Card>
+    );
+  }
+
+  const status = frozen
+    ? "Restore them to reveal or reset this password."
+    : revealed
+      ? "Shown to you just now, and not again — here or on their page. Hand it to them in person, never by email or chat."
+      : !workspace.collected
+        ? `Temporary password waiting to be collected — by you here, or by ${name} on their own page, whoever opens it first.`
+        : workspace.viewedAt
+          ? `Temporary password collected ${formatDateTime(workspace.viewedAt)}.`
+          : "No temporary password on record: they already had a Workspace account, or it was never collected. Reset it to issue one.";
+
+  return (
+    <Card>
+      <SectionTitle
+        title="Workspace login"
+        lead={`${name} signs in to the Focus Realm Workspace with this employee ID and a temporary password, and chooses their own password the first time.`}
+      />
+
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <Detail label="Employee ID" value={workspace.loginId} />
+        <Detail label="Sign in at" value={loginUrl ?? "—"} />
+        {revealed && <Detail label="Temporary password" value={revealed} />}
+      </dl>
+
+      <p className="mt-4 text-sm" style={{ color: "var(--fr-muted)" }}>
+        {status}
+      </p>
+
+      {!frozen && !resetting && (
+        <div className="mt-5 flex flex-wrap gap-3">
+          {!workspace.collected && !revealed && (
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const data = await onReveal();
+                setBusy(false);
+                if (data?.password) setRevealed(data.password);
+              }}
+            >
+              <Eye className="size-4" aria-hidden />
+              {busy ? "Revealing…" : "Reveal temporary password"}
+            </Button>
+          )}
+          <Button variant="ghost" disabled={busy} onClick={() => setResetting(true)}>
+            <RotateCcw className="size-4" aria-hidden />
+            Reset Workspace password
+          </Button>
+        </div>
+      )}
+
+      {!frozen && resetting && (
+        <div className="mt-5 space-y-4">
+          <Notice tone="warn">
+            This signs {name} out of the Workspace on every device and replaces their password with
+            a new temporary one, shown once like the first.
+          </Notice>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const done = await onReset();
+                setBusy(false);
+                setResetting(false);
+                if (done) setRevealed(null);
+              }}
+            >
+              {busy ? "Resetting…" : "Reset password"}
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setResetting(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

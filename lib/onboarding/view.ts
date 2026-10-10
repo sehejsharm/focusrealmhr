@@ -50,6 +50,13 @@ export function toCandidateView(candidate: Candidate): CandidateView {
           viewed: Boolean(candidate.mailbox.viewedAt) || !candidate.mailbox.sealedPassword,
         }
       : null,
+    workspace: candidate.workspace
+      ? {
+          loginId: candidate.workspace.loginId,
+          // As with the mailbox: no sealed password means nothing left to collect.
+          viewed: Boolean(candidate.workspace.viewedAt) || !candidate.workspace.sealedPassword,
+        }
+      : null,
     existing: Boolean(candidate.existing),
   };
 }
