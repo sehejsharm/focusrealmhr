@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 
 /**
  * Chrome for Focus Realm HR — onboarding, the employee portal and the founders'
- * console. Navy and gold with Inter, per the current Focus Realm brand system —
- * deliberately unlike the hospitality product demo this repo also serves.
+ * console. It wears the same blue-and-white Focus Realm brand as the
+ * Workspace: the page ground follows the theme (light by default, dark when
+ * chosen) and nothing here is "always dark". Fonts and the theme are set up
+ * once, in the root layout.
  */
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Focus Realm HR",
@@ -23,12 +19,5 @@ export default function HrLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      className={`${inter.variable} fr-root min-h-screen`}
-      style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}
-    >
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen bg-bg text-fg">{children}</div>;
 }
