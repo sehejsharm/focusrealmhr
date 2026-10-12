@@ -18,6 +18,7 @@ import {
   inputClass,
   inputStyle,
 } from "@/components/onboarding/ui";
+import AdminGate, { LockButton, adminFetch } from "@/components/onboarding/AdminGate";
 import type { Contract } from "@/lib/onboarding/contract";
 import {
   DEFAULT_TERM_MONTHS,
@@ -70,6 +71,14 @@ interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "work
 
 /** One candidate: their documents, and the decisions only a founder can make. */
 export default function AdminCandidatePage() {
+  return (
+    <AdminGate>
+      <CandidateRecord />
+    </AdminGate>
+  );
+}
+
+function CandidateRecord() {
   const { id } = useParams<{ id: string }>();
   const [candidate, setCandidate] = useState<AdminCandidate | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -77,7 +86,7 @@ export default function AdminCandidatePage() {
 
   const load = useCallback(
     () =>
-      fetch(`/api/onboarding/admin/candidates/${id}`)
+      adminFetch(`/api/onboarding/admin/candidates/${id}`)
         .then(async (response) => {
           if (response.ok) setCandidate((await response.json()) as AdminCandidate);
         })
@@ -91,11 +100,13 @@ export default function AdminCandidatePage() {
 
   async function act(payload: Record<string, unknown>) {
     setMessage(null);
-    const response = await fetch(`/api/onboarding/admin/candidates/${id}`, {
+    const response = await adminFetch(`/api/onboarding/admin/candidates/${id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
+    // Signed out: the gate is back over the page.
+    if (response.status === 401) return null;
     const data = await response.json();
 
     if (!response.ok) {
@@ -168,6 +179,7 @@ export default function AdminCandidatePage() {
           Everyone
         </Link>
         <ThemeToggle />
+        <LockButton />
         </div>
       </div>
 
@@ -806,7 +818,7 @@ function AgreementUpload({
     setBusy(true);
     setMessage(null);
 
-    const response = await fetch(`/api/onboarding/admin/candidates/${id}/agreement`, {
+    const response = await adminFetch(`/api/onboarding/admin/candidates/${id}/agreement`, {
       method: "POST",
       body: new FormData(event.currentTarget),
     });

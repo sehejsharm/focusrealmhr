@@ -11,12 +11,13 @@ export async function POST(request: Request) {
   }
 
   const store = await cookies();
+  // No maxAge: the browser forgets the session when it closes. The value
+  // itself stops working after two hours either way (issueAdminSession).
   store.set(ADMIN_COOKIE, issueAdminSession(), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 12 * 3600,
   });
 
   return json({ ok: true });

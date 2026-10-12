@@ -89,8 +89,11 @@ export function checkPasscode(supplied: string): boolean {
   );
 }
 
-/** Session value is `expiry.signature` — no server-side session table needed. */
-export function issueAdminSession(hours = 12): string {
+/**
+ * Session value is `expiry.signature` — no server-side session table needed.
+ * Two hours, then the passcode again: the console shows identity documents.
+ */
+export function issueAdminSession(hours = 2): string {
   const expiry = String(Date.now() + hours * 3600_000);
   const sig = createHmac("sha256", secret()).update(expiry).digest("base64url");
   return `${expiry}.${sig}`;
