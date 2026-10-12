@@ -161,8 +161,9 @@ repository — replace it wholesale rather than editing it.
 | A candidate or existing employee is added | Account created; the temporary password is sealed on their record |
 | They submit their details | Full name and phone updated |
 | Their company mailbox is recorded | Their sign-in email becomes the mailbox |
+| Their last day ends (midnight, Indian time) | Made a former employee: locked out and signed out on every device; history kept. Done by the nightly cron, or at once by **Sync everyone** |
 | A founder removes them | Locked out and signed out on every device; history kept |
-| A founder restores them | Can sign in again |
+| A founder restores them | Can sign in again — unless their last day is already over |
 | **Reset Workspace password**, on their record | A new temporary password, sealed the same way; signed out everywhere |
 | **Sync everyone to the Workspace**, foot of `/hr/admin` | Every active person without a login gets one — including anyone whose last attempt failed; failures are listed with their error; safe to run again |
 
@@ -172,6 +173,7 @@ repository — replace it wholesale rather than editing it.
 |---|---|
 | `FOCUS_REALM_WORKSPACE_URL` | The Workspace's address, e.g. `https://workspace.focusrealm.com` |
 | `FOCUS_REALM_WORKSPACE_SECRET` | The same value as `HR_WEBHOOK_SECRET` on the Workspace (`openssl rand -hex 32`) |
+| `CRON_SECRET` | Any long random value (`openssl rand -hex 32`). Vercel sends it to the nightly cron in `vercel.json`, which calls `/api/cron/workspace-leavers` at 19:05 UTC (00:35 in India) |
 
 With either unset, every Workspace call is skipped silently and the console
 works exactly as before. Once both are set, press **Sync everyone to the
@@ -195,9 +197,9 @@ it is lost, **Reset Workspace password** issues a new one.
 
 A Workspace call never holds up an HR action. If the Workspace is down, the
 person is created, updated or removed here all the same, and the error is
-logged: re-run the sync to give anyone who missed out a login, and check the
-Workspace's admin → HR console screen after removing someone while it was
-down, since that removal will not have locked them out there.
+logged: re-run the sync to give anyone who missed out a login. A removal or a
+last day the Workspace has not confirmed is retried by every nightly run and
+every sync until it is; the person's record shows whether it has been.
 
 ## Deploying to Vercel
 

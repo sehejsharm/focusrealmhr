@@ -2,14 +2,19 @@ import { error, isAdmin, json } from "@/lib/onboarding/api.server";
 import { listCandidates } from "@/lib/onboarding/store.server";
 import {
   describeWorkspaceFailure,
+  lastDayOver,
   linkWorkspaceAccount,
+  offboardLeavers,
   workspaceConfigured,
 } from "@/lib/onboarding/workspace.server";
 
 /**
  * Gives every active person in the console without a Workspace login one:
  * people added before the two apps were connected, and anyone whose earlier
- * attempt failed — each run tries them again. Removed people are left out.
+ * attempt failed — each run tries them again. Removed people, and anyone whose
+ * last day is over, are left out. Then it makes everyone who has left — last
+ * day over, or removed — a former employee in the Workspace, as the daily
+ * cron does, so a founder never has to wait for it.
  *
  * Everyone is keyed on their record id, never their email. Two people with the
  * same invite address or mailbox are two people, and each gets their own login.
@@ -45,7 +50,7 @@ export async function POST() {
       alreadyLinked++;
       continue;
     }
-    if (candidate.removal) {
+    if (candidate.removal || lastDayOver(candidate)) {
       skipped++;
       continue;
     }
@@ -68,5 +73,11 @@ export async function POST() {
     }
   }
 
-  return json({ synced, alreadyLinked, skipped, failed });
+  // Leavers too — skipped while the Workspace is not answering.
+  const leavers = unreachable ? { offboarded: [], failed: [] } : await offboardLeavers();
+  for (const failure of leavers.failed) {
+    failed.push({ ...failure, error: `Could not make them a former employee: ${failure.error}` });
+  }
+
+  return json({ synced, alreadyLinked, skipped, offboarded: leavers.offboarded.length, failed });
 }

@@ -63,7 +63,12 @@ interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "work
     viewedAt: string | null;
     /** False while a temporary password is waiting to be collected. */
     collected: boolean;
+    /** Set once the Workspace made them a former employee. */
+    offboarded: { at: string; cause: "term-ended" | "removed" } | null;
   } | null;
+  /** Their last day, and whether it is over (in Indian time). */
+  lastDay: string;
+  lastDayOver: boolean;
   /** Where people sign in to the Workspace — null while the connection is off. */
   workspaceLoginUrl: string | null;
   /** Other people on the same invite address or mailbox. Allowed; shown so nobody is surprised. */
@@ -214,6 +219,8 @@ export default function AdminCandidatePage() {
             workspace={candidate.workspace}
             loginUrl={candidate.workspaceLoginUrl}
             email={candidate.mailbox?.address ?? candidate.invitedEmail}
+            lastDay={candidate.lastDay}
+            left={candidate.lastDayOver || frozen}
             sharedEmailWith={candidate.sharedEmailWith ?? []}
             frozen={frozen}
             onReveal={() => act({ action: "reveal-workspace-password" })}
@@ -917,6 +924,8 @@ function WorkspaceCard({
   loginUrl,
   email,
   sharedEmailWith,
+  lastDay,
+  left,
   frozen,
   onReveal,
   onReset,
@@ -926,6 +935,9 @@ function WorkspaceCard({
   loginUrl: string | null;
   email: string;
   sharedEmailWith: AdminCandidate["sharedEmailWith"];
+  lastDay: string;
+  /** Last day over, or removed. */
+  left: boolean;
   frozen: boolean;
   onReveal: () => Promise<{ password: string | null } | null>;
   onReset: () => Promise<unknown>;
@@ -986,6 +998,27 @@ function WorkspaceCard({
         <Detail label="Email (not a login)" value={email} />
         {revealed && <Detail label="Temporary password" value={revealed} />}
       </dl>
+
+      <div className="mt-4">
+        {workspace.offboarded ? (
+          <Notice tone="info">
+            Former employee in the Workspace since {formatDateTime(workspace.offboarded.at)}
+            {workspace.offboarded.cause === "term-ended" ? ", after their last day" : ", when removed"}. Signed
+            out everywhere; their login no longer works.
+          </Notice>
+        ) : left ? (
+          <Notice tone="warn">
+            They have left, but the Workspace has not confirmed it yet. They are made a former employee and
+            signed out everywhere on the next nightly run — or now, with &ldquo;Sync everyone to the
+            Workspace&rdquo; on the console.
+          </Notice>
+        ) : (
+          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+            Their last day is {formatDate(lastDay)}. When it is over (midnight, Indian time) the Workspace makes
+            them a former employee and signs them out everywhere, automatically.
+          </p>
+        )}
+      </div>
 
       {shared}
 

@@ -254,6 +254,12 @@ export interface WorkspaceLogin {
    * single view. Absent once viewed, or when the Workspace issued none.
    */
   sealedPassword?: string;
+  /**
+   * Set once the Workspace confirmed them a former employee — signed out
+   * everywhere, login stopped. "term-ended" is the automatic run after their
+   * last day; "removed" is a founder removing them. Cleared on restore.
+   */
+  offboarded?: { at: string; cause: "term-ended" | "removed" };
 }
 
 export interface Candidate {

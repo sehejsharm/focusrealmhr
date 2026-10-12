@@ -14,16 +14,15 @@ import {
   isCertificateKind,
   isDeclined,
 } from "@/lib/onboarding/certificates";
-import { offboardingLinkAvailable, offboardingState } from "@/lib/onboarding/offboarding";
-import {
-  offboardWorkspaceAccount,
-  resetWorkspacePassword,
-  restoreWorkspaceAccount,
-} from "@/lib/onboarding/workspace-sync.server";
+import { lastDayOf, offboardingLinkAvailable, offboardingState } from "@/lib/onboarding/offboarding";
+import { resetWorkspacePassword } from "@/lib/onboarding/workspace-sync.server";
 import {
   claimWorkspacePassword,
   describeWorkspaceFailure,
+  lastDayOver,
+  offboardFromWorkspace,
   recordWorkspaceLogin,
+  restoreInWorkspace,
   refreshWorkspaceAccount,
   workspaceConfigured,
   workspaceLoginUrl,
@@ -85,8 +84,12 @@ export async function GET(
           provisionedAt: workspace.provisionedAt,
           viewedAt: workspace.viewedAt ?? null,
           collected: !workspace.sealedPassword,
+          offboarded: workspace.offboarded ?? null,
         }
       : null,
+    // After this, the daily sweep makes them a former employee in the Workspace.
+    lastDayOver: lastDayOver(candidate),
+    lastDay: lastDayOf(candidate),
     // Null while the Workspace connection is switched off.
     workspaceLoginUrl: workspaceLoginUrl(),
     // Others on the same invite address or mailbox. Allowed — shown, never refused.
@@ -154,16 +157,18 @@ export async function POST(
         // The store keys token lookups off this, which is what shuts the link.
         archivedAt: now,
       }));
-      // Locks them out of the Workspace too, and signs them out everywhere.
-      await offboardWorkspaceAccount(id, reason).catch(console.error);
+      // Locks them out of the Workspace too, and signs them out everywhere. If
+      // the Workspace is down, the daily sweep keeps trying until it is done.
+      if (updated) await offboardFromWorkspace(updated, "removed", reason).catch(console.error);
       return json({ ok: true, retention: updated ? retentionOf(updated) : null });
     }
 
     case "restore": {
       if (!candidate.removal) return error("This person is not removed.", 409);
 
-      await updateCandidate(id, (c) => ({ ...c, removal: undefined, archivedAt: undefined }));
-      await restoreWorkspaceAccount(id).catch(console.error);
+      const restored = await updateCandidate(id, (c) => ({ ...c, removal: undefined, archivedAt: undefined }));
+      // Someone whose last day is already over stays a former employee there.
+      if (restored && !lastDayOver(restored)) await restoreInWorkspace(restored).catch(console.error);
       return json({ ok: true });
     }
 

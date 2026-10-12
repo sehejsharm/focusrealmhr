@@ -896,8 +896,10 @@ function NewCandidate({
 interface SyncResult {
   synced: number;
   alreadyLinked: number;
-  /** Removed people, left out of the Workspace. */
+  /** Removed people and anyone past their last day, never given a login. */
   skipped: number;
+  /** Left — last day over, or removed — and just made former employees there. */
+  offboarded: number;
   failed: { id: string; name: string; email: string; error: string }[];
 }
 
@@ -932,7 +934,7 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
     <Card className="mt-5">
       <SectionTitle
         title="Focus Realm Workspace"
-        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. They sign in with the employee ID — never their email, which several people may share. This gives a login to every active person who does not have one yet, including anyone whose last attempt failed. Anyone already linked is skipped, so it is safe to run again."
+        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. They sign in with the employee ID — never their email, which several people may share. This gives a login to every active person who does not have one yet, including anyone whose last attempt failed. Anyone already linked is skipped, so it is safe to run again. Once someone's last day is over, the Workspace makes them a former employee and signs them out everywhere — automatically every night, and whenever you press this."
       />
       <div className="space-y-4">
         <Button disabled={busy} onClick={sync}>
@@ -947,8 +949,11 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
             <Notice tone={result.failed.length > 0 ? "warn" : "good"}>
               {result.synced} new login{result.synced === 1 ? "" : "s"} · {result.alreadyLinked} already
               linked · {result.failed.length} failed
+              {result.offboarded > 0
+                ? ` · ${result.offboarded} who left made former employee${result.offboarded === 1 ? "" : "s"}`
+                : ""}
               {result.skipped > 0
-                ? ` · ${result.skipped} removed ${result.skipped === 1 ? "person" : "people"} left out`
+                ? ` · ${result.skipped} who left without a login not given one`
                 : ""}
               .
               {result.synced > 0 &&
