@@ -1,5 +1,6 @@
 import { error, json } from "@/lib/onboarding/api.server";
-import { getCandidateByToken } from "@/lib/onboarding/store.server";
+import { getCandidateByToken, listCandidates } from "@/lib/onboarding/store.server";
+import { othersSharingEmail } from "@/lib/onboarding/shared-email";
 import { currentStage, stageIndex } from "@/lib/onboarding/stage";
 import { claimWorkspacePassword, workspaceLoginUrl } from "@/lib/onboarding/workspace.server";
 
@@ -8,6 +9,9 @@ import { claimWorkspacePassword, workspaceLoginUrl } from "@/lib/onboarding/work
  * onboarding on. Reveals the temporary password exactly once, then destroys
  * the stored copy — the mailbox rule. A second call returns the login without
  * a password.
+ *
+ * They sign in with the employee ID, never their email — several people may
+ * share one address, so it also says who else uses theirs (by name only).
  */
 export async function POST(
   _request: Request,
@@ -26,10 +30,14 @@ export async function POST(
     ? await claimWorkspacePassword(candidate.id)
     : null;
 
+  const others = othersSharingEmail(candidate, await listCandidates().catch(() => []));
+
   return json({
     loginId: candidate.workspace.loginId,
     password,
     alreadyViewed: !password,
     loginUrl: workspaceLoginUrl(),
+    email: candidate.mailbox?.address ?? candidate.invitedEmail,
+    sharedEmailWith: others.map((other) => other.name),
   });
 }

@@ -10,7 +10,8 @@ import {
   certificatesAwaitingApproval,
 } from "@/lib/onboarding/certificates";
 import { offboardingState } from "@/lib/onboarding/offboarding";
-import { linkWorkspaceAccount } from "@/lib/onboarding/workspace.server";
+import { describeWorkspaceFailure, linkWorkspaceAccount } from "@/lib/onboarding/workspace.server";
+import { othersSharingEmail } from "@/lib/onboarding/shared-email";
 import {
   BUILT_IN_TRACKS,
   DEFAULT_TERM_MONTHS,
@@ -189,12 +190,21 @@ export async function POST(request: Request) {
    * everyone to the Workspace" picks them up later.
    */
   let workspace: { loginId: string } | null = null;
+  let workspaceError: string | null = null;
   try {
     workspace = await linkWorkspaceAccount(candidate);
   } catch (cause) {
     console.error("Workspace provisioning failed", cause);
+    workspaceError = describeWorkspaceFailure(cause).message;
   }
 
+  /*
+   * A shared email is allowed — people are told apart by their record id, and
+   * each gets their own Workspace login. The founders are only told who else
+   * uses it.
+   */
+  const sharedWith = othersSharingEmail(candidate, await listCandidates().catch(() => []));
+
   // An existing employee's link opens their employee portal rather than onboarding.
-  return json({ id: candidate.id, token: candidate.token, workspace }, 201);
+  return json({ id: candidate.id, token: candidate.token, workspace, workspaceError, sharedWith }, 201);
 }

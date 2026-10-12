@@ -63,9 +63,16 @@ interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "work
     viewedAt: string | null;
     /** False while a temporary password is waiting to be collected. */
     collected: boolean;
+    /** Set once the Workspace made them a former employee. */
+    offboarded: { at: string; cause: "term-ended" | "removed" } | null;
   } | null;
+  /** Their last day, and whether it is over (in Indian time). */
+  lastDay: string;
+  lastDayOver: boolean;
   /** Where people sign in to the Workspace — null while the connection is off. */
   workspaceLoginUrl: string | null;
+  /** Other people on the same invite address or mailbox. Allowed; shown so nobody is surprised. */
+  sharedEmailWith: { id: string; name: string; email: string }[];
 }
 
 /** One candidate: their documents, and the decisions only a founder can make. */
@@ -188,6 +195,8 @@ export default function AdminCandidatePage() {
           reason={candidate.removal.reason}
           retention={candidate.retention}
           mailbox={candidate.mailbox?.address ?? null}
+          workspace={candidate.workspace}
+          lastDayOver={candidate.lastDayOver}
           onRestore={() => act({ action: "restore" })}
         />
       )}
@@ -211,6 +220,10 @@ export default function AdminCandidatePage() {
             name={details?.fullName ?? candidate.invitedName}
             workspace={candidate.workspace}
             loginUrl={candidate.workspaceLoginUrl}
+            email={candidate.mailbox?.address ?? candidate.invitedEmail}
+            lastDay={candidate.lastDay}
+            left={candidate.lastDayOver || frozen}
+            sharedEmailWith={candidate.sharedEmailWith ?? []}
             frozen={frozen}
             onReveal={() => act({ action: "reveal-workspace-password" })}
             onReset={() => act({ action: "reset-workspace-password" })}
@@ -520,6 +533,7 @@ export default function AdminCandidatePage() {
           <RemoveIntern
             name={details?.fullName ?? candidate.invitedName}
             mailbox={candidate.mailbox?.address ?? null}
+            workspaceLoginId={candidate.workspace?.loginId ?? null}
             onRemove={(leftOn, reason) => act({ action: "remove", leftOn, reason })}
           />
         )}
@@ -534,12 +548,16 @@ function RemovedBanner({
   reason,
   retention,
   mailbox,
+  workspace,
+  lastDayOver,
   onRestore,
 }: {
   leftOn: string;
   reason?: string;
   retention: { kind: "keep" | "erase"; until: string } | null;
   mailbox: string | null;
+  workspace: AdminCandidate["workspace"];
+  lastDayOver: boolean;
   onRestore: () => void;
 }) {
   return (
@@ -556,12 +574,26 @@ function RemovedBanner({
               ? `their internship never began, so the privacy notice commits to erasing it by ${formatDate(retention.until)} (within 90 days).`
               : "see the privacy notice for how long."}
         </span>
+        {workspace && (
+          <span className="mt-1 block">
+            {workspace.offboarded
+              ? `Former employee in the Workspace (${workspace.loginId}) since ${formatDateTime(workspace.offboarded.at)} — signed out everywhere, login stopped.`
+              : `The Workspace has not confirmed ${workspace.loginId} is a former employee yet — it is retried every night and on every "Sync everyone to the Workspace".`}
+          </span>
+        )}
         {mailbox && (
           <span className="mt-1 block font-bold">
             Disable {mailbox} in SpaceMail — this console cannot do that for you.
           </span>
         )}
       </Notice>
+      {workspace && (
+        <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+          {lastDayOver
+            ? "Restoring brings them back here, but their last day is over, so they stay a former employee in the Workspace."
+            : "Restoring also lets them sign in to the Workspace again."}
+        </p>
+      )}
       <Button variant="ghost" onClick={onRestore}>
         <RotateCcw className="size-4" aria-hidden />
         Restore to the team
@@ -574,10 +606,12 @@ function RemovedBanner({
 function RemoveIntern({
   name,
   mailbox,
+  workspaceLoginId,
   onRemove,
 }: {
   name: string;
   mailbox: string | null;
+  workspaceLoginId: string | null;
   onRemove: (leftOn: string, reason: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -620,6 +654,13 @@ function RemoveIntern({
               />
             </Field>
           </div>
+
+          {workspaceLoginId && (
+            <Notice tone="warn">
+              This also makes {name} ({workspaceLoginId}) a former employee in the Workspace straight away:
+              signed out on every device, and their login stops working. Their history there is kept.
+            </Notice>
+          )}
 
           {mailbox && (
             <Notice tone="warn">
@@ -911,6 +952,10 @@ function WorkspaceCard({
   name,
   workspace,
   loginUrl,
+  email,
+  sharedEmailWith,
+  lastDay,
+  left,
   frozen,
   onReveal,
   onReset,
@@ -918,6 +963,11 @@ function WorkspaceCard({
   name: string;
   workspace: AdminCandidate["workspace"];
   loginUrl: string | null;
+  email: string;
+  sharedEmailWith: AdminCandidate["sharedEmailWith"];
+  lastDay: string;
+  /** Last day over, or removed. */
+  left: boolean;
   frozen: boolean;
   onReveal: () => Promise<{ password: string | null } | null>;
   onReset: () => Promise<unknown>;
@@ -926,13 +976,31 @@ function WorkspaceCard({
   const [resetting, setResetting] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const shared = sharedEmailWith.length > 0 && (
+    <div className="mt-4">
+      <Notice tone="info">
+        {email} is shared. Also used by:{" "}
+        {sharedEmailWith.map((other, i) => (
+          <span key={other.id}>
+            {i > 0 && ", "}
+            <Link href={`/hr/admin/${other.id}`} className="font-bold underline">
+              {other.name}
+            </Link>
+          </span>
+        ))}
+        . Each of them has their own record and their own Workspace employee ID.
+      </Notice>
+    </div>
+  );
+
   if (!workspace) {
     return (
       <Card>
         <SectionTitle
           title="Workspace login"
-          lead={`${name} does not have a Workspace login yet. "Sync everyone to the Workspace", at the foot of the console, creates one.`}
+          lead={`${name} does not have a Workspace login yet. "Sync everyone to the Workspace", at the foot of the console, creates one — and retries anyone whose last attempt failed.`}
         />
+        {shared}
       </Card>
     );
   }
@@ -951,14 +1019,38 @@ function WorkspaceCard({
     <Card>
       <SectionTitle
         title="Workspace login"
-        lead={`${name} signs in to the Focus Realm Workspace with this employee ID and a temporary password, and chooses their own password the first time.`}
+        lead={`${name} signs in to the Focus Realm Workspace with this employee ID and a temporary password, and chooses their own password the first time. Their email is not a login.`}
       />
 
       <dl className="grid gap-4 sm:grid-cols-2">
-        <Detail label="Employee ID" value={workspace.loginId} />
+        <Detail label="Sign in with this employee ID" value={workspace.loginId} />
         <Detail label="Sign in at" value={loginUrl ?? "—"} />
+        <Detail label="Email (not a login)" value={email} />
         {revealed && <Detail label="Temporary password" value={revealed} />}
       </dl>
+
+      <div className="mt-4">
+        {workspace.offboarded ? (
+          <Notice tone="info">
+            Former employee in the Workspace since {formatDateTime(workspace.offboarded.at)}
+            {workspace.offboarded.cause === "term-ended" ? ", after their last day" : ", when removed"}. Signed
+            out everywhere; their login no longer works.
+          </Notice>
+        ) : left ? (
+          <Notice tone="warn">
+            They have left, but the Workspace has not confirmed it yet. They are made a former employee and
+            signed out everywhere on the next nightly run — or now, with &ldquo;Sync everyone to the
+            Workspace&rdquo; on the console.
+          </Notice>
+        ) : (
+          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+            Their last day is {formatDate(lastDay)}. When it is over (midnight, Indian time) the Workspace makes
+            them a former employee and signs them out everywhere, automatically.
+          </p>
+        )}
+      </div>
+
+      {shared}
 
       <p className="mt-4 text-sm" style={{ color: "var(--fg-muted)" }}>
         {status}

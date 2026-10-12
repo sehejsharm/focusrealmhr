@@ -1,13 +1,17 @@
 import {
+  offboardWorkspaceAccount,
   provisionWorkspaceAccount,
+  restoreWorkspaceAccount,
   updateWorkspaceAccount,
   type WorkspaceCandidate,
   type WorkspaceCredentials,
 } from "./workspace-sync.server";
 import { consentCoversWorkspace } from "./compliance";
+import { formatLongDate } from "./contract";
+import { lastDayOf, offboardingOpensAt } from "./offboarding";
 import { seal, unseal } from "./security.server";
-import { updateCandidate } from "./store.server";
-import { trackOf, type Candidate } from "./types";
+import { listCandidates, updateCandidate } from "./store.server";
+import { trackOf, type Candidate, type WorkspaceLogin } from "./types";
 
 /**
  * The HR console's side of the Focus Realm Workspace connection. SERVER ONLY.
@@ -87,6 +91,8 @@ export async function recordWorkspaceLogin(
         // A new password has not been seen by anyone yet.
         viewedAt: sealedPassword ? undefined : kept?.viewedAt,
         sealedPassword: sealedPassword ?? kept?.sealedPassword,
+        // A new password (a reset) does not undo leaving.
+        offboarded: kept?.offboarded,
       },
     };
   });
@@ -139,7 +145,12 @@ export async function claimWorkspacePassword(id: string): Promise<string | null>
     if (!c.workspace || !claim.sealed) return c;
     return {
       ...c,
-      workspace: { loginId: c.workspace.loginId, provisionedAt: c.workspace.provisionedAt, viewedAt },
+      workspace: {
+        loginId: c.workspace.loginId,
+        provisionedAt: c.workspace.provisionedAt,
+        viewedAt,
+        offboarded: c.workspace.offboarded,
+      },
     };
   });
 
@@ -157,4 +168,103 @@ export function describeWorkspaceFailure(cause: unknown): { message: string; ans
     return { message: cause.message, answered: true };
   }
   return { message: "The Workspace could not be reached.", answered: false };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Leaving                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Whether their last day is over: midnight in India at the end of it, the
+ * moment their offboarding link opens. They keep the Workspace through the
+ * whole of their last day.
+ */
+export function lastDayOver(candidate: Candidate, now = new Date()): boolean {
+  return now.getTime() >= offboardingOpensAt(candidate).getTime();
+}
+
+/** Why someone should be a former employee in the Workspace, or null if they should not. */
+function leavingCause(candidate: Candidate, now: Date): NonNullable<WorkspaceLogin["offboarded"]>["cause"] | null {
+  if (candidate.removal) return "removed";
+  return lastDayOver(candidate, now) ? "term-ended" : null;
+}
+
+/**
+ * Makes them a former employee in the Workspace — every session there is
+ * signed out and their login stops working — and records that it was done.
+ * Throws when the Workspace refuses or cannot be reached; nothing is recorded
+ * then, so the next sweep tries again.
+ */
+export async function offboardFromWorkspace(
+  candidate: Candidate,
+  cause: NonNullable<WorkspaceLogin["offboarded"]>["cause"],
+  reason?: string,
+): Promise<boolean> {
+  if (!candidate.workspace) return false;
+
+  const why =
+    reason ??
+    (cause === "term-ended"
+      ? `Term ended — last day ${formatLongDate(new Date(lastDayOf(candidate)))}`
+      : candidate.removal?.reason);
+  const done = await offboardWorkspaceAccount(candidate.id, why);
+  if (!done) return false;
+
+  const at = new Date().toISOString();
+  await updateCandidate(candidate.id, (c) =>
+    c.workspace ? { ...c, workspace: { ...c.workspace, offboarded: { at, cause } } } : c,
+  );
+  return true;
+}
+
+/** Undoes offboardFromWorkspace: active again in the Workspace, and the record says so. */
+export async function restoreInWorkspace(candidate: Candidate): Promise<boolean> {
+  if (!candidate.workspace) return false;
+  if (!(await restoreWorkspaceAccount(candidate.id))) return false;
+
+  await updateCandidate(candidate.id, (c) =>
+    c.workspace ? { ...c, workspace: { ...c.workspace, offboarded: undefined } } : c,
+  );
+  return true;
+}
+
+export interface LeaverSweep {
+  offboarded: { id: string; name: string; cause: "term-ended" | "removed" }[];
+  failed: { id: string; name: string; email: string; error: string }[];
+}
+
+/**
+ * Everyone whose last day is over, or who was removed, and who is still an
+ * active employee in the Workspace, is made a former employee there and
+ * signed out everywhere. Run daily just after midnight in India by the cron
+ * route, and on every "Sync everyone to the Workspace".
+ *
+ * Safe to run any number of times: anyone already offboarded is skipped, and
+ * a failure is recorded nowhere, so the next run tries them again.
+ */
+export async function offboardLeavers(now = new Date()): Promise<LeaverSweep> {
+  const result: LeaverSweep = { offboarded: [], failed: [] };
+  if (!workspaceConfigured()) return result;
+
+  for (const candidate of await listCandidates()) {
+    if (!candidate.workspace?.loginId || candidate.workspace.offboarded) continue;
+    const cause = leavingCause(candidate, now);
+    if (!cause) continue;
+
+    const name = candidate.details?.fullName ?? candidate.invitedName;
+    try {
+      if (await offboardFromWorkspace(candidate, cause)) {
+        result.offboarded.push({ id: candidate.id, name, cause });
+      }
+    } catch (failure) {
+      console.error("Workspace offboarding failed for", candidate.id, failure);
+      result.failed.push({
+        id: candidate.id,
+        name,
+        email: candidate.mailbox?.address ?? candidate.invitedEmail,
+        error: describeWorkspaceFailure(failure).message,
+      });
+    }
+  }
+  return result;
 }
