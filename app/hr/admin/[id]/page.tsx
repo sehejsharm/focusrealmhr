@@ -66,6 +66,8 @@ interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "work
   } | null;
   /** Where people sign in to the Workspace — null while the connection is off. */
   workspaceLoginUrl: string | null;
+  /** Other people on the same invite address or mailbox. Allowed; shown so nobody is surprised. */
+  sharedEmailWith: { id: string; name: string; email: string }[];
 }
 
 /** One candidate: their documents, and the decisions only a founder can make. */
@@ -211,6 +213,8 @@ export default function AdminCandidatePage() {
             name={details?.fullName ?? candidate.invitedName}
             workspace={candidate.workspace}
             loginUrl={candidate.workspaceLoginUrl}
+            email={candidate.mailbox?.address ?? candidate.invitedEmail}
+            sharedEmailWith={candidate.sharedEmailWith ?? []}
             frozen={frozen}
             onReveal={() => act({ action: "reveal-workspace-password" })}
             onReset={() => act({ action: "reset-workspace-password" })}
@@ -911,6 +915,8 @@ function WorkspaceCard({
   name,
   workspace,
   loginUrl,
+  email,
+  sharedEmailWith,
   frozen,
   onReveal,
   onReset,
@@ -918,6 +924,8 @@ function WorkspaceCard({
   name: string;
   workspace: AdminCandidate["workspace"];
   loginUrl: string | null;
+  email: string;
+  sharedEmailWith: AdminCandidate["sharedEmailWith"];
   frozen: boolean;
   onReveal: () => Promise<{ password: string | null } | null>;
   onReset: () => Promise<unknown>;
@@ -926,13 +934,31 @@ function WorkspaceCard({
   const [resetting, setResetting] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const shared = sharedEmailWith.length > 0 && (
+    <div className="mt-4">
+      <Notice tone="info">
+        {email} is shared. Also used by:{" "}
+        {sharedEmailWith.map((other, i) => (
+          <span key={other.id}>
+            {i > 0 && ", "}
+            <Link href={`/hr/admin/${other.id}`} className="font-bold underline">
+              {other.name}
+            </Link>
+          </span>
+        ))}
+        . Each of them has their own record and their own Workspace employee ID.
+      </Notice>
+    </div>
+  );
+
   if (!workspace) {
     return (
       <Card>
         <SectionTitle
           title="Workspace login"
-          lead={`${name} does not have a Workspace login yet. "Sync everyone to the Workspace", at the foot of the console, creates one.`}
+          lead={`${name} does not have a Workspace login yet. "Sync everyone to the Workspace", at the foot of the console, creates one — and retries anyone whose last attempt failed.`}
         />
+        {shared}
       </Card>
     );
   }
@@ -951,14 +977,17 @@ function WorkspaceCard({
     <Card>
       <SectionTitle
         title="Workspace login"
-        lead={`${name} signs in to the Focus Realm Workspace with this employee ID and a temporary password, and chooses their own password the first time.`}
+        lead={`${name} signs in to the Focus Realm Workspace with this employee ID and a temporary password, and chooses their own password the first time. Their email is not a login.`}
       />
 
       <dl className="grid gap-4 sm:grid-cols-2">
-        <Detail label="Employee ID" value={workspace.loginId} />
+        <Detail label="Sign in with this employee ID" value={workspace.loginId} />
         <Detail label="Sign in at" value={loginUrl ?? "—"} />
+        <Detail label="Email (not a login)" value={email} />
         {revealed && <Detail label="Temporary password" value={revealed} />}
       </dl>
+
+      {shared}
 
       <p className="mt-4 text-sm" style={{ color: "var(--fg-muted)" }}>
         {status}

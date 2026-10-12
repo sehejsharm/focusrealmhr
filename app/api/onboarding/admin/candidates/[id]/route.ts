@@ -1,5 +1,6 @@
 import { clientIp, error, isAdmin, json } from "@/lib/onboarding/api.server";
-import { getCandidate, updateCandidate } from "@/lib/onboarding/store.server";
+import { getCandidate, listCandidates, updateCandidate } from "@/lib/onboarding/store.server";
+import { othersSharingEmail } from "@/lib/onboarding/shared-email";
 import { buildContract } from "@/lib/onboarding/contract";
 import { companiesOf, currentStage, retentionOf } from "@/lib/onboarding/stage";
 import { formatAadhaar, formatLongDate } from "@/lib/onboarding/contract";
@@ -88,6 +89,8 @@ export async function GET(
       : null,
     // Null while the Workspace connection is switched off.
     workspaceLoginUrl: workspaceLoginUrl(),
+    // Others on the same invite address or mailbox. Allowed — shown, never refused.
+    sharedEmailWith: othersSharingEmail(candidate, await listCandidates().catch(() => [])),
   });
 }
 

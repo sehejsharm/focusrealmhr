@@ -143,6 +143,13 @@ employee app ([sehejsharm/employee-management](https://github.com/sehejsharm/emp
 an **employee ID** such as `FR-0042` and a **temporary password**. They sign in
 with those and choose their own password the first time.
 
+The **employee ID is the only login**. Emails are not unique and never used to
+sign in or to match people: several candidates may share one invite address
+or mailbox, and each still gets their own record and their own employee ID.
+The two systems are linked by the candidate's record id (`externalId` in the
+Workspace). Where an email is shared, the founder's record page, the creation
+confirmation and the candidate's login reveal list who else uses it.
+
 The two apps talk through one signed endpoint on the Workspace; its
 `docs/HR_CONSOLE_INTEGRATION.md` has the contract. The client,
 `lib/onboarding/workspace-sync.server.ts`, is copied verbatim from that
@@ -157,7 +164,7 @@ repository — replace it wholesale rather than editing it.
 | A founder removes them | Locked out and signed out on every device; history kept |
 | A founder restores them | Can sign in again |
 | **Reset Workspace password**, on their record | A new temporary password, sealed the same way; signed out everywhere |
-| **Sync everyone to the Workspace**, foot of `/hr/admin` | Everyone without a login gets one; safe to run again |
+| **Sync everyone to the Workspace**, foot of `/hr/admin` | Every active person without a login gets one — including anyone whose last attempt failed; failures are listed with their error; safe to run again |
 
 **Setup.** Set both, server-side only — never with a `NEXT_PUBLIC_` prefix:
 

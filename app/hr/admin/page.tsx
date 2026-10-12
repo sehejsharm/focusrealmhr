@@ -508,7 +508,13 @@ function NewCandidate({
   const [companies, setCompanies] = useState<Company[]>(ALL_COMPANIES);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ id: string; link: string } | null>(null);
+  const [created, setCreated] = useState<{
+    id: string;
+    link: string;
+    workspace: { loginId: string } | null;
+    workspaceError: string | null;
+    sharedWith: { id: string; name: string; email: string }[];
+  } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const known = BUILT_IN_TRACKS[track];
@@ -555,6 +561,9 @@ function NewCandidate({
     setCreated({
       id: data.id as string,
       link: `${window.location.origin}/hr/${data.token}`,
+      workspace: data.workspace ?? null,
+      workspaceError: data.workspaceError ?? null,
+      sharedWith: data.sharedWith ?? [],
     });
   }
 
@@ -575,6 +584,33 @@ function NewCandidate({
         >
           {created.link}
         </p>
+
+        {created.workspace && (
+          <div className="mb-4">
+            <Notice tone="good">
+              Workspace login created. Sign in with this employee ID: {created.workspace.loginId}. Their
+              email is not a login.
+            </Notice>
+          </div>
+        )}
+
+        {created.workspaceError && (
+          <div className="mb-4">
+            <Notice tone="warn">
+              They were added, but their Workspace login could not be created: {created.workspaceError}{" "}
+              &ldquo;Sync everyone to the Workspace&rdquo; tries again.
+            </Notice>
+          </div>
+        )}
+
+        {created.sharedWith.length > 0 && (
+          <div className="mb-4">
+            <Notice tone="warn">
+              This email is shared. Also used by: {created.sharedWith.map((p) => p.name).join(", ")}. That
+              is fine — each person gets their own record and their own Workspace employee ID.
+            </Notice>
+          </div>
+        )}
 
         {!isExisting && agreementKind === "bespoke" && !hasAgreementOnFile && (
           <div className="mb-4">
@@ -862,7 +898,7 @@ interface SyncResult {
   alreadyLinked: number;
   /** Removed people, left out of the Workspace. */
   skipped: number;
-  failed: { id: string; name: string; error: string }[];
+  failed: { id: string; name: string; email: string; error: string }[];
 }
 
 /**
@@ -896,7 +932,7 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
     <Card className="mt-5">
       <SectionTitle
         title="Focus Realm Workspace"
-        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. This gives one to everyone who does not have one yet, such as people added before the Workspace was connected. Anyone already linked is skipped, so it is safe to run again."
+        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. They sign in with the employee ID — never their email, which several people may share. This gives a login to every active person who does not have one yet, including anyone whose last attempt failed. Anyone already linked is skipped, so it is safe to run again."
       />
       <div className="space-y-4">
         <Button disabled={busy} onClick={sync}>
@@ -931,6 +967,9 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
                       {failure.name}
                     </Link>
                     <span className="mt-0.5 block text-xs" style={{ color: "var(--fg-muted)" }}>
+                      {failure.email}
+                    </span>
+                    <span className="mt-1 block text-xs" style={{ color: "var(--danger)" }}>
                       {failure.error}
                     </span>
                   </li>

@@ -7,14 +7,17 @@ import {
 } from "@/lib/onboarding/workspace.server";
 
 /**
- * Gives everyone already in the console a Workspace login: people added before
- * the two apps were connected, or whose login could not be created at the
- * time. Removed people are left out.
+ * Gives every active person in the console without a Workspace login one:
+ * people added before the two apps were connected, and anyone whose earlier
+ * attempt failed — each run tries them again. Removed people are left out.
+ *
+ * Everyone is keyed on their record id, never their email. Two people with the
+ * same invite address or mailbox are two people, and each gets their own login.
  *
  * Safe to run any number of times. Anyone already linked is skipped, and the
  * Workspace applies each person's creation event once — the event id comes
- * from their record id — so a re-run never makes a second account or a second
- * temporary password.
+ * from their record id, and an event that failed before is applied afresh — so
+ * a re-run never makes a second account or a second temporary password.
  */
 export async function POST() {
   if (!(await isAdmin())) return error("Not authorised.", 401);
@@ -28,7 +31,7 @@ export async function POST() {
   let synced = 0;
   let alreadyLinked = 0;
   let skipped = 0;
-  const failed: { id: string; name: string; error: string }[] = [];
+  const failed: { id: string; name: string; email: string; error: string }[] = [];
   let unreachable = false;
 
   // One at a time, oldest first, so employee IDs follow the order people joined.
@@ -36,6 +39,7 @@ export async function POST() {
 
   for (const candidate of candidates) {
     const name = candidate.details?.fullName ?? candidate.invitedName;
+    const email = candidate.mailbox?.address ?? candidate.invitedEmail;
 
     if (candidate.workspace?.loginId) {
       alreadyLinked++;
@@ -46,18 +50,18 @@ export async function POST() {
       continue;
     }
     if (unreachable) {
-      failed.push({ id: candidate.id, name, error: "Not attempted — the Workspace could not be reached." });
+      failed.push({ id: candidate.id, name, email, error: "Not attempted — the Workspace could not be reached." });
       continue;
     }
 
     try {
       const login = await linkWorkspaceAccount(candidate);
       if (login) synced++;
-      else failed.push({ id: candidate.id, name, error: "The Workspace did not return a login. Run the sync again." });
+      else failed.push({ id: candidate.id, name, email, error: "The Workspace did not return a login. Run the sync again." });
     } catch (cause) {
       console.error("Workspace sync failed for", candidate.id, cause);
       const failure = describeWorkspaceFailure(cause);
-      failed.push({ id: candidate.id, name, error: failure.message });
+      failed.push({ id: candidate.id, name, email, error: failure.message });
       // A refusal is about this one person. No answer at all means the Workspace
       // is down: stop, rather than sit through every remaining timeout.
       if (!failure.answered) unreachable = true;

@@ -10,6 +10,10 @@ interface Login {
   password: string | null;
   alreadyViewed: boolean;
   loginUrl: string | null;
+  /** Their email on record. Not a login — several people may share it. */
+  email: string;
+  /** Names of the other people using the same email. */
+  sharedEmailWith: string[];
 }
 
 /**
@@ -57,10 +61,23 @@ export default function WorkspaceAccess({
         />
 
         <dl className="space-y-3">
-          <CredentialRow label="Employee ID" value={login.loginId} />
+          <CredentialRow label="Sign in with this employee ID" value={login.loginId} />
           {login.password && <CredentialRow label="Temporary password" value={login.password} mono />}
           {login.loginUrl && <CredentialRow label="Sign in at" value={login.loginUrl} />}
         </dl>
+
+        <p className="mt-5 text-sm" style={{ color: "var(--fg-muted)" }}>
+          Your email, {login.email}, is not a login — always sign in with your employee ID.
+        </p>
+
+        {login.sharedEmailWith.length > 0 && (
+          <div className="mt-4">
+            <Notice tone="info">
+              {login.email} is shared. Also used by: {login.sharedEmailWith.join(", ")}. Each of you has
+              your own employee ID and your own password.
+            </Notice>
+          </div>
+        )}
       </Card>
     );
   }
@@ -77,9 +94,15 @@ export default function WorkspaceAccess({
         }
       />
 
-      <p className="mb-5 flex items-center gap-2 font-mono text-base font-bold">
+      <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
+        Sign in with this employee ID
+      </p>
+      <p className="mt-1 mb-2 flex items-center gap-2 font-mono text-base font-bold">
         <KeyRound className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
         {workspace.loginId}
+      </p>
+      <p className="mb-5 text-sm" style={{ color: "var(--fg-muted)" }}>
+        Your email is not a login.
       </p>
 
       {message && (
