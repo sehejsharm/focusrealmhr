@@ -53,12 +53,12 @@ export default function DetailsStage({
         {candidate.consent && (
           <div
             className="mt-6 rounded-xl border p-4"
-            style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
           >
-            <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-gold)" }}>
+            <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--brand)" }}>
               Consent recorded
             </p>
-            <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+            <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
               You gave {candidate.consent.acceptedItems.length} consents on{" "}
               {new Date(candidate.consent.at).toLocaleString("en-IN")} against privacy
               notice version {candidate.consent.noticeVersion}. You can withdraw your
@@ -100,34 +100,34 @@ export default function DetailsStage({
       <SectionTitle
         eyebrow="Step 1 of 6"
         title="Your details"
-        lead="We need these to draw up your internship agreement. They go to the founders only, and are used for the contract and nothing else."
+        lead="We need these to draw up your internship agreement. Only the founders see them, except your name and phone number, which also go on your Focus Realm Workspace profile for your colleagues to see."
       />
 
       <div
         className="mb-6 rounded-xl border p-4 sm:p-5"
-        style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+        style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
       >
-        <p className="text-xs font-bold tracking-[0.18em] uppercase" style={{ color: "var(--fr-gold)" }}>
+        <p className="text-xs font-bold tracking-[0.18em] uppercase" style={{ color: "var(--brand)" }}>
           Before you fill this in
         </p>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fr-paper)" }}>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fg)" }}>
           {DATA_FIDUCIARY.name}, {DATA_FIDUCIARY.place}, is the data fiduciary for the
           personal data you are about to give. It is collected only for these purposes:
         </p>
         <ul className="mt-3 space-y-1.5">
           {PURPOSES.map((purpose) => (
-            <li key={purpose} className="flex gap-2 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
-              <span style={{ color: "var(--fr-gold)" }} aria-hidden>
+            <li key={purpose} className="flex gap-2 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
+              <span style={{ color: "var(--brand)" }} aria-hidden>
                 ·
               </span>
               {purpose}
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
           {RETENTION.summary} You can withdraw your consent, or ask to see, correct or
           erase your data, at any time by writing to {DATA_FIDUCIARY.grievanceEmail}.{" "}
-          <Link href="/hr/privacy" className="underline" style={{ color: "var(--fr-gold-soft)" }}>
+          <Link href="/hr/privacy" className="underline" style={{ color: "var(--brand-soft-fg)" }}>
             Read the full privacy notice
           </Link>
           .
@@ -142,12 +142,14 @@ export default function DetailsStage({
           <Field label="Son / daughter of" hint="Parent's full name, for the agreement.">
             <input name="parentName" required maxLength={120} className={inputClass} style={inputStyle} />
           </Field>
-          <Field label="Aadhaar number" hint="12 digits. Spaces are fine.">
+          <Field label="Aadhaar — last four digits" hint="Only the last four. We never ask for the full number.">
             <input
-              name="aadhaarNumber"
+              name="aadhaarLast4"
               required
               inputMode="numeric"
               autoComplete="off"
+              maxLength={4}
+              pattern="[0-9]{4}"
               className={inputClass}
               style={inputStyle}
             />
@@ -172,34 +174,37 @@ export default function DetailsStage({
           />
         </Field>
 
-        <Field label="Copy of your Aadhaar card" hint="JPG, PNG, WebP or PDF, up to 8 MB.">
+        <Field
+          label="Masked copy of your Aadhaar card"
+          hint="One that shows only the last four digits of the number — download a masked Aadhaar from myAadhaar, or cover the first eight digits on a photo of your card. JPG, PNG, WebP or PDF, up to 8 MB."
+        >
           <div
             className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-4"
-            style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
           >
-            <Upload className="size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+            <Upload className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
             <input
               name="aadhaarFile"
               type="file"
               required
               accept="image/jpeg,image/png,image/webp,application/pdf"
-              className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--fr-navy-soft)] file:px-3 file:py-2 file:text-sm file:font-bold file:text-[var(--fr-paper)]"
+              className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface-hover)] file:px-3 file:py-2 file:text-sm file:font-bold file:text-[var(--fg)]"
             />
           </div>
         </Field>
 
         <div
           className="rounded-xl px-4 py-4"
-          style={{ backgroundColor: "rgba(201,162,39,0.10)" }}
+          style={{ backgroundColor: "var(--brand-soft)" }}
         >
-          <p className="flex items-center gap-2 text-sm font-bold" style={{ color: "var(--fr-gold-soft)" }}>
+          <p className="flex items-center gap-2 text-sm font-bold" style={{ color: "var(--brand-soft-fg)" }}>
             <ShieldCheck className="size-4 shrink-0" aria-hidden />
             How your Aadhaar is handled
           </p>
           <ul className="mt-2.5 space-y-2">
             {AADHAAR_SAFEGUARDS.map((point) => (
-              <li key={point} className="flex gap-2 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
-                <span style={{ color: "var(--fr-gold)" }} aria-hidden>
+              <li key={point} className="flex gap-2 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
+                <span style={{ color: "var(--brand)" }} aria-hidden>
                   ·
                 </span>
                 {point}
@@ -210,12 +215,12 @@ export default function DetailsStage({
 
         <fieldset
           className="rounded-xl border p-4"
-          style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+          style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
         >
-          <legend className="px-1 text-xs font-bold tracking-[0.18em] uppercase" style={{ color: "var(--fr-gold)" }}>
+          <legend className="px-1 text-xs font-bold tracking-[0.18em] uppercase" style={{ color: "var(--brand)" }}>
             Your consent
           </legend>
-          <p className="mb-3 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+          <p className="mb-3 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
             Nothing here is pre-ticked, and each one is a separate consent. Tick only what
             you agree to — if you would rather not give one of them, speak to your point of
             contact before submitting.
@@ -229,12 +234,12 @@ export default function DetailsStage({
                   name="consent"
                   value={item.id}
                   required
-                  className="mt-0.5 size-4 shrink-0 accent-[var(--fr-gold)]"
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
                 />
                 <span className="min-w-0">
                   <span className="block text-xs leading-relaxed">{item.label}</span>
                   {item.detail && (
-                    <span className="mt-1 block text-[11px] leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+                    <span className="mt-1 block text-[11px] leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                       {item.detail}
                     </span>
                   )}
@@ -257,7 +262,7 @@ export default function DetailsStage({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
         {label}
       </dt>
       <dd className="mt-1 text-sm leading-snug break-words">{value}</dd>

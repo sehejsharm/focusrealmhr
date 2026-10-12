@@ -124,9 +124,9 @@ export default function ContractStage({
         )}
 
         {isSigned && !isVerified && (
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: "rgba(201,162,39,0.10)" }}>
-            <Clock className="size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
-            <p className="text-sm" style={{ color: "var(--fr-muted)" }}>
+          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: "var(--brand-soft)" }}>
+            <Clock className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
+            <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
               Signed {candidate.signedAt ? formatDateTime(candidate.signedAt) : ""} — awaiting
               verification.
             </p>
@@ -138,9 +138,9 @@ export default function ContractStage({
             href={`/api/onboarding/session/${token}/contract/pdf`}
             className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
             style={{
-              backgroundColor: "var(--fr-navy-soft)",
-              border: "1px solid var(--fr-line)",
-              color: "var(--fr-paper)",
+              backgroundColor: "var(--surface-hover)",
+              border: "1px solid var(--line)",
+              color: "var(--fg)",
             }}
           >
             <Download className="size-4" aria-hidden />
@@ -171,9 +171,9 @@ export default function ContractStage({
             rel="noreferrer"
             className="inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
             style={{
-              backgroundColor: "var(--fr-navy-soft)",
-              border: "1px solid var(--fr-line)",
-              color: "var(--fr-paper)",
+              backgroundColor: "var(--surface-hover)",
+              border: "1px solid var(--line)",
+              color: "var(--fg)",
             }}
           >
             Open {document.originalName}
@@ -217,7 +217,7 @@ export default function ContractStage({
                 type="checkbox"
                 checked={affirmed}
                 onChange={(e) => setAffirmed(e.target.checked)}
-                className="mt-1 size-4 shrink-0 accent-[var(--fr-gold)]"
+                className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
               />
               <span className="text-sm leading-snug text-pretty">
                 I have read this agreement in full, the details in it are mine and correct, and I
@@ -230,7 +230,7 @@ export default function ContractStage({
                 type="checkbox"
                 checked={signingConsent}
                 onChange={(e) => setSigningConsent(e.target.checked)}
-                className="mt-1 size-4 shrink-0 accent-[var(--fr-gold)]"
+                className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
               />
               <span className="min-w-0">
                 <span className="block text-sm leading-snug text-pretty">
@@ -239,7 +239,7 @@ export default function ContractStage({
                 {SIGNING_CONSENT.detail && (
                   <span
                     className="mt-1 block text-xs leading-relaxed"
-                    style={{ color: "var(--fr-muted)" }}
+                    style={{ color: "var(--fg-muted)" }}
                   >
                     {SIGNING_CONSENT.detail}
                   </span>

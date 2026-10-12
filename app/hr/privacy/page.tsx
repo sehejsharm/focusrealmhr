@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { Card, SectionTitle, Wordmark } from "@/components/onboarding/ui";
+import { Card, SectionTitle, ThemeToggle, Wordmark } from "@/components/onboarding/ui";
 import {
   AADHAAR_SAFEGUARDS,
   DATA_COLLECTED,
@@ -27,9 +27,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t pt-6 first:border-0 first:pt-0" style={{ borderColor: "var(--fr-line)" }}>
+    <section className="border-t pt-6 first:border-0 first:pt-0" style={{ borderColor: "var(--line)" }}>
       <h2 className="mb-3 text-base font-bold">{title}</h2>
-      <div className="space-y-3 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+      <div className="space-y-3 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
         {children}
       </div>
     </section>
@@ -41,7 +41,7 @@ function Bullets({ items }: { items: readonly string[] }) {
     <ul className="space-y-2">
       {items.map((item) => (
         <li key={item} className="flex gap-2.5">
-          <span style={{ color: "var(--fr-gold)" }} aria-hidden>
+          <span style={{ color: "var(--brand)" }} aria-hidden>
             ·
           </span>
           <span>{item}</span>
@@ -61,14 +61,17 @@ export default function PrivacyNoticePage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Wordmark subtitle="HR portal" />
+        <div className="flex items-center gap-3">
         <Link
           href="/hr"
           className="inline-flex items-center gap-2 text-sm font-bold"
-          style={{ color: "var(--fr-gold-soft)" }}
+          style={{ color: "var(--brand-soft-fg)" }}
         >
           <ArrowLeft className="size-4" aria-hidden />
           Back to Focus Realm HR
         </Link>
+        <ThemeToggle />
+        </div>
       </div>
 
       <Card>
@@ -117,18 +120,31 @@ export default function PrivacyNoticePage() {
             <Bullets items={AADHAAR_SAFEGUARDS} />
             <p>
               This is consistent with section 4(3) of the Aadhaar Act, 2016, which makes
-              giving Aadhaar voluntary for a purpose like this one, and with the Aadhaar
-              (Sharing of Information) Regulations, 2016, which prohibit publishing or
-              displaying an Aadhaar number.
+              giving Aadhaar voluntary for a purpose like this one; with section 8A(4) of the
+              same Act and UIDAI&apos;s direction that an organisation which checks an Aadhaar
+              without authenticating it should not collect or store the number, and should keep
+              only a masked copy; and with the Aadhaar (Sharing of Information) Regulations,
+              2016, which prohibit publishing or displaying an Aadhaar number.
             </p>
           </Section>
 
           <Section title="Who can see it">
             <p>
-              The founders of {DATA_FIDUCIARY.name}, and no one else. Your data is not
-              shared with any other person or organisation, other than the hosting and
-              storage providers that run this portal on our instructions, and any disclosure
-              a court or a law requires us to make.
+              The founders of {DATA_FIDUCIARY.name}. Everything you give through this portal
+              stays here, where only they can see it, with one exception.
+            </p>
+            <p>
+              When you are added, you also get a login to the Focus Realm Workspace, the
+              team&apos;s own app. Your name, role, start date and email address (the one you
+              were invited at, until you have a company mailbox) are copied there, and so is
+              the phone number you give on the details form. Colleagues signed in to the
+              Workspace can see them. Your Aadhaar number and copy, your address and your
+              parent&apos;s name never leave this portal.
+            </p>
+            <p>
+              Your data is not shared with any other person or organisation, other than the
+              hosting and storage providers that run this portal and the Workspace on our
+              instructions, and any disclosure a court or a law requires us to make.
             </p>
           </Section>
 
@@ -136,9 +152,10 @@ export default function PrivacyNoticePage() {
             <p>
               Identity documents are held in private storage that this portal cannot read
               back into a web page, reachable only with a server-side credential. Your
-              onboarding link is a secret — treat it like a password. Aadhaar numbers are
-              masked everywhere but the founders&apos; console, and every time a founder
-              opens your Aadhaar copy, that access is recorded against your record.
+              onboarding link is a secret — treat it like a password. The portal holds only the
+              last four digits of your Aadhaar number and shows nothing more of it to anyone,
+              and every time a founder opens your Aadhaar copy, that access is recorded against
+              your record.
             </p>
           </Section>
 
@@ -151,7 +168,7 @@ export default function PrivacyNoticePage() {
             <ul className="space-y-3">
               {RIGHTS.map((right) => (
                 <li key={right.title}>
-                  <p className="font-bold" style={{ color: "var(--fr-paper)" }}>
+                  <p className="font-bold" style={{ color: "var(--fg)" }}>
                     {right.title}
                   </p>
                   <p>{right.body}</p>
@@ -170,7 +187,7 @@ export default function PrivacyNoticePage() {
         </div>
       </Card>
 
-      <p className="mt-6 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+      <p className="mt-6 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
         This notice and the internship agreement generated by this portal are drafts pending
         review by counsel, and are not legal advice.
       </p>

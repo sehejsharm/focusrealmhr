@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Award, Copy, LogOut, FileWarning, Plus, RefreshCw, UserPlus } from "lucide-react";
+import { AlertTriangle, Award, Copy, KeyRound, LogOut, FileWarning, Plus, RefreshCw, UserPlus } from "lucide-react";
 import {
   Button,
   Card,
   Field,
   Notice,
   SectionTitle,
+  ThemeToggle,
   Wordmark,
   formatDate,
   inputClass,
@@ -127,7 +128,8 @@ export default function AdminConsole() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
         <Wordmark subtitle="HR console" href="/hr/admin" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ThemeToggle />
           <Button variant="ghost" onClick={load}>
             <RefreshCw className="size-4" aria-hidden />
             Refresh
@@ -179,7 +181,7 @@ export default function AdminConsole() {
       )}
 
       <Card className="!p-0">
-        <div className="border-b p-5 fr-rule sm:p-6">
+        <div className="border-b p-5 border-line sm:p-6">
           <SectionTitle
             title="People"
             lead="Interns, candidates and employees, newest first. Open one to review documents, act on onboarding, approve end-of-internship certificates, or send an offboarding link."
@@ -187,11 +189,11 @@ export default function AdminConsole() {
         </div>
 
         {!active ? (
-          <p className="p-6 text-sm" style={{ color: "var(--fr-muted)" }}>
+          <p className="p-6 text-sm" style={{ color: "var(--fg-muted)" }}>
             Loading…
           </p>
         ) : active.length === 0 ? (
-          <p className="p-6 text-sm" style={{ color: "var(--fr-muted)" }}>
+          <p className="p-6 text-sm" style={{ color: "var(--fg-muted)" }}>
             {removed.length > 0
               ? "No one active. Removed people are listed below."
               : "No one here yet. Invite a candidate, or add an existing employee."}
@@ -202,7 +204,7 @@ export default function AdminConsole() {
               <thead>
                 <tr
                   className="text-[11px] tracking-[0.14em] uppercase"
-                  style={{ color: "var(--fr-muted)" }}
+                  style={{ color: "var(--fg-muted)" }}
                 >
                   <Th>Person</Th>
                   <Th>Role</Th>
@@ -220,7 +222,7 @@ export default function AdminConsole() {
                   const ended = remaining < 0;
 
                   return (
-                    <tr key={row.id} className="border-t align-top fr-rule">
+                    <tr key={row.id} className="border-t align-top border-line">
                       <Td>
                         <Link
                           href={`/hr/admin/${row.id}`}
@@ -228,7 +230,7 @@ export default function AdminConsole() {
                         >
                           {row.fullName ?? row.invitedName}
                         </Link>
-                        <span className="mt-0.5 block text-xs" style={{ color: "var(--fr-muted)" }}>
+                        <span className="mt-0.5 block text-xs" style={{ color: "var(--fg-muted)" }}>
                           {row.invitedEmail}
                         </span>
                       </Td>
@@ -244,7 +246,7 @@ export default function AdminConsole() {
                         <span className="tabular-nums">{formatDate(row.endDate)}</span>
                         <span
                           className="mt-0.5 block text-xs"
-                          style={{ color: ended ? "var(--fr-muted)" : "var(--fr-gold-soft)" }}
+                          style={{ color: ended ? "var(--fg-muted)" : "var(--brand-soft-fg)" }}
                         >
                           {ended
                             ? `ended ${Math.abs(remaining)}d ago`
@@ -255,8 +257,8 @@ export default function AdminConsole() {
                         <span
                           className="inline-block rounded-md px-2 py-1 text-xs"
                           style={{
-                            backgroundColor: "var(--fr-navy-soft)",
-                            color: "var(--fr-muted)",
+                            backgroundColor: "var(--surface-hover)",
+                            color: "var(--fg-muted)",
                           }}
                         >
                           {STAGE_LABEL[row.stage]}
@@ -267,7 +269,7 @@ export default function AdminConsole() {
                           {row.existing && (
                             <span
                               className="inline-block rounded-md px-2 py-1 text-xs"
-                              style={{ backgroundColor: "var(--fr-navy-soft)", color: "var(--fr-muted)" }}
+                              style={{ backgroundColor: "var(--surface-hover)", color: "var(--fg-muted)" }}
                             >
                               Added directly
                             </span>
@@ -304,7 +306,7 @@ export default function AdminConsole() {
                           {row.offboarding === "done" && (
                             <span
                               className="inline-block rounded-md px-2 py-1 text-xs"
-                              style={{ backgroundColor: "rgba(52,168,110,0.14)", color: "#a7e8c6" }}
+                              style={{ backgroundColor: "var(--success-soft)", color: "var(--success-soft-fg)" }}
                             >
                               Offboarded
                             </span>
@@ -312,7 +314,7 @@ export default function AdminConsole() {
                           {row.certificatesIssued.length > 0 && (
                             <span
                               className="inline-block rounded-md px-2 py-1 text-xs"
-                              style={{ backgroundColor: "rgba(52,168,110,0.14)", color: "#a7e8c6" }}
+                              style={{ backgroundColor: "var(--success-soft)", color: "var(--success-soft-fg)" }}
                             >
                               {row.certificatesIssued.length === 2 ? "Certificates issued" : "1 of 2 issued"}
                             </span>
@@ -339,19 +341,19 @@ export default function AdminConsole() {
               <li
                 key={row.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm"
-                style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+                style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
               >
                 <div className="min-w-0">
                   <Link href={`/hr/admin/${row.id}`} className="font-bold hover:underline">
                     {row.fullName ?? row.invitedName}
                   </Link>
-                  <span className="block text-xs" style={{ color: "var(--fr-muted)" }}>
+                  <span className="block text-xs" style={{ color: "var(--fg-muted)" }}>
                     {row.role.label} · left {formatDate(row.removal!.leftOn)}
                     {row.removal!.reason ? ` · ${row.removal!.reason}` : ""}
                   </span>
                 </div>
                 {row.retention && (
-                  <span className="text-xs tabular-nums" style={{ color: "var(--fr-muted)" }}>
+                  <span className="text-xs tabular-nums" style={{ color: "var(--fg-muted)" }}>
                     {row.retention.kind === "keep" ? "Keep until " : "Erase by "}
                     {formatDate(row.retention.until)}
                   </span>
@@ -361,6 +363,8 @@ export default function AdminConsole() {
           </ul>
         </Card>
       )}
+
+      {rows && <WorkspaceSync onSynced={load} />}
     </div>
   );
 }
@@ -377,17 +381,17 @@ function Stat({
   return (
     <div
       className="rounded-xl border p-4"
-      style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy)" }}
+      style={{ borderColor: "var(--line)", backgroundColor: "var(--surface)" }}
     >
       <dt
         className="text-[10px] font-bold tracking-[0.14em] uppercase"
-        style={{ color: "var(--fr-muted)" }}
+        style={{ color: "var(--fg-muted)" }}
       >
         {label}
       </dt>
       <dd
         className="mt-2 text-2xl leading-none font-bold tabular-nums"
-        style={{ color: tone === "gold" && value > 0 ? "var(--fr-gold-soft)" : "var(--fr-paper)" }}
+        style={{ color: tone === "gold" && value > 0 ? "var(--brand-soft-fg)" : "var(--fg)" }}
       >
         {value}
       </dd>
@@ -414,7 +418,7 @@ function Flag({
   return (
     <span
       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold whitespace-nowrap"
-      style={{ backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }}
+      style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
     >
       <Icon className="size-3" aria-hidden />
       {children}
@@ -451,8 +455,9 @@ function PasscodeGate({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <Wordmark subtitle="HR console" href="/hr/admin" />
+        <ThemeToggle />
       </div>
       <Card>
         <SectionTitle
@@ -566,7 +571,7 @@ function NewCandidate({
         />
         <p
           className="mb-4 rounded-xl border p-4 font-mono text-sm break-all"
-          style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+          style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
         >
           {created.link}
         </p>
@@ -657,12 +662,12 @@ function NewCandidate({
 
         <fieldset
           className="space-y-3 rounded-xl border p-4"
-          style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+          style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
         >
           <legend className="px-1 text-sm font-bold">
             {isExisting ? "Works with" : "Onboard into"}
           </legend>
-          <p className="text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
             {isExisting
               ? "The companies they work across. Shown on the roster."
               : "Each company adds its own handbook, video briefing and assessment. The candidate only sees — and can only open — the material for the companies ticked here."}
@@ -675,8 +680,8 @@ function NewCandidate({
                   key={company.id}
                   className="flex min-h-12 items-center gap-3 rounded-xl border px-4"
                   style={{
-                    borderColor: checked ? "var(--fr-gold)" : "var(--fr-line)",
-                    backgroundColor: checked ? "rgba(201,162,39,0.10)" : "transparent",
+                    borderColor: checked ? "var(--brand)" : "var(--line)",
+                    backgroundColor: checked ? "var(--brand-soft)" : "transparent",
                   }}
                 >
                   <input
@@ -689,7 +694,7 @@ function NewCandidate({
                           : prev.filter((c) => c !== company.id),
                       )
                     }
-                    className="size-4 shrink-0 accent-[var(--fr-gold)]"
+                    className="size-4 shrink-0 accent-[var(--brand)]"
                   />
                   <span className="text-sm font-bold">{company.label}</span>
                 </label>
@@ -697,7 +702,7 @@ function NewCandidate({
             })}
           </div>
           {companies.length === 0 && (
-            <p className="text-xs font-bold" style={{ color: "#f2b8b8" }}>
+            <p className="text-xs font-bold" style={{ color: "var(--danger-soft-fg)" }}>
               Tick at least one company.
             </p>
           )}
@@ -706,9 +711,9 @@ function NewCandidate({
         {track === "custom" && (
           <div
             className="space-y-4 rounded-xl border p-4"
-            style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
           >
-            <p className="text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
               A custom role is written into this candidate&apos;s agreement exactly as you
               enter it here, and is frozen on their record — editing it later cannot change
               an agreement they have already signed.
@@ -781,15 +786,15 @@ function NewCandidate({
         {!hasAgreementOnFile && !isExisting && (
           <fieldset
             className="rounded-xl border p-4"
-            style={{ borderColor: "var(--fr-gold)", backgroundColor: "var(--fr-navy-deep)" }}
+            style={{ borderColor: "var(--brand)", backgroundColor: "var(--surface-sunken)" }}
           >
             <legend
               className="px-1 text-xs font-bold tracking-[0.16em] uppercase"
-              style={{ color: "var(--fr-gold)" }}
+              style={{ color: "var(--brand)" }}
             >
               Agreement for this role
             </legend>
-            <p className="mb-3 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+            <p className="mb-3 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
               The only agreement on file is the Founder&apos;s Office one. Choose what this
               candidate signs.
             </p>
@@ -801,13 +806,13 @@ function NewCandidate({
                   name="agreementKind"
                   checked={agreementKind === "standard"}
                   onChange={() => setAgreementKind("standard")}
-                  className="mt-0.5 size-4 shrink-0 accent-[var(--fr-gold)]"
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-bold">
                     Issue the standard agreement for this role
                   </span>
-                  <span className="mt-1 block text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+                  <span className="mt-1 block text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                     Identical to the Founder&apos;s Office agreement clause for clause. Only
                     the role title, the duties above and the term change. Ready to sign
                     immediately.
@@ -821,13 +826,13 @@ function NewCandidate({
                   name="agreementKind"
                   checked={agreementKind === "bespoke"}
                   onChange={() => setAgreementKind("bespoke")}
-                  className="mt-0.5 size-4 shrink-0 accent-[var(--fr-gold)]"
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-bold">
                     Upload an agreement or job description for this role
                   </span>
-                  <span className="mt-1 block text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+                  <span className="mt-1 block text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                     Use this where the terms differ beyond duties and title. You upload the
                     document from the candidate&apos;s record, and they cannot reach a
                     signature until you have.
@@ -844,6 +849,97 @@ function NewCandidate({
           {busy ? (isExisting ? "Adding…" : "Creating…") : isExisting ? "Add to roster" : "Create and generate link"}
         </Button>
       </form>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Focus Realm Workspace                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface SyncResult {
+  synced: number;
+  alreadyLinked: number;
+  /** Removed people, left out of the Workspace. */
+  skipped: number;
+  failed: { id: string; name: string; error: string }[];
+}
+
+/**
+ * Everyone added here gets a Workspace login the moment they are created.
+ * This catches up everyone else: people added before the two apps were
+ * connected, or whose login could not be created at the time.
+ */
+function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<SyncResult | null>(null);
+
+  async function sync() {
+    setBusy(true);
+    setMessage(null);
+    setResult(null);
+
+    const response = await fetch("/api/onboarding/admin/workspace/sync", { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!response.ok) {
+      setMessage(data.error ?? "Could not sync with the Workspace.");
+      return;
+    }
+    setResult(data as SyncResult);
+    onSynced();
+  }
+
+  return (
+    <Card className="mt-5">
+      <SectionTitle
+        title="Focus Realm Workspace"
+        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. This gives one to everyone who does not have one yet, such as people added before the Workspace was connected. Anyone already linked is skipped, so it is safe to run again."
+      />
+      <div className="space-y-4">
+        <Button disabled={busy} onClick={sync}>
+          <KeyRound className="size-4" aria-hidden />
+          {busy ? "Syncing…" : "Sync everyone to the Workspace"}
+        </Button>
+
+        {message && <Notice tone="bad">{message}</Notice>}
+
+        {result && (
+          <>
+            <Notice tone={result.failed.length > 0 ? "warn" : "good"}>
+              {result.synced} new login{result.synced === 1 ? "" : "s"} · {result.alreadyLinked} already
+              linked · {result.failed.length} failed
+              {result.skipped > 0
+                ? ` · ${result.skipped} removed ${result.skipped === 1 ? "person" : "people"} left out`
+                : ""}
+              .
+              {result.synced > 0 &&
+                " Open a person's record to reveal their temporary password, or let them collect it on their own page."}
+            </Notice>
+
+            {result.failed.length > 0 && (
+              <ul className="space-y-2">
+                {result.failed.map((failure) => (
+                  <li
+                    key={failure.id}
+                    className="rounded-xl border p-3 text-sm"
+                    style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
+                  >
+                    <Link href={`/hr/admin/${failure.id}`} className="font-bold hover:underline">
+                      {failure.name}
+                    </Link>
+                    <span className="mt-0.5 block text-xs" style={{ color: "var(--fg-muted)" }}>
+                      {failure.error}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
     </Card>
   );
 }

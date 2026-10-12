@@ -20,7 +20,7 @@ export default function ContractDocument({
   return (
     <article
       className="rounded-2xl px-5 py-8 sm:px-10 sm:py-12"
-      style={{ backgroundColor: "#fbfaf7", color: "#1a1a1a" }}
+      style={{ backgroundColor: "var(--paper)", color: "var(--paper-ink)" }}
     >
       <header className="mb-8 border-b border-stone-300 pb-6 text-center">
         <p className="text-[11px] font-bold tracking-[0.22em] text-stone-500 uppercase">
@@ -111,7 +111,7 @@ export default function ContractDocument({
             <SignatureLine label="Name" value={contract.fields.fullName} />
             <SignatureLine
               label="Aadhaar Card No."
-              value={`XXXX XXXX ${contract.fields.aadhaarNumber.slice(-4)}`}
+              value={`XXXX XXXX ${contract.fields.aadhaarLast4}`}
             />
             <SignatureLine
               label="Date"
@@ -140,7 +140,8 @@ export default function ContractDocument({
             </p>
           )}
           <p>
-            Aadhaar number is masked in this view; the full number is held on the signed record.
+            The intern&apos;s Aadhaar number is masked throughout; only its last four digits appear on
+            this agreement.
           </p>
         </div>
       )}

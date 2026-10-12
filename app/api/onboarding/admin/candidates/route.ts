@@ -10,11 +10,13 @@ import {
   certificatesAwaitingApproval,
 } from "@/lib/onboarding/certificates";
 import { offboardingState } from "@/lib/onboarding/offboarding";
+import { linkWorkspaceAccount } from "@/lib/onboarding/workspace.server";
 import {
   BUILT_IN_TRACKS,
   DEFAULT_TERM_MONTHS,
   MAX_TERM_MONTHS,
   MIN_TERM_MONTHS,
+  aadhaarLast4Of,
   trackIdFromLabel,
   trackOf,
 } from "@/lib/onboarding/types";
@@ -46,7 +48,7 @@ export async function GET() {
       createdAt: c.createdAt,
       stage: currentStage(c),
       fullName: c.details?.fullName ?? null,
-      aadhaarMasked: c.details ? maskAadhaar(c.details.aadhaarNumber) : null,
+      aadhaarMasked: c.details ? maskAadhaar(aadhaarLast4Of(c.details)) : null,
       signedAt: c.signature?.signedAt ?? null,
       contractVerifiedAt: c.contractVerifiedAt ?? null,
       emailRequestedAt: c.emailRequestedAt ?? null,
@@ -180,6 +182,19 @@ export async function POST(request: Request) {
     mailbox,
   });
 
+  /*
+   * Their Workspace login: an employee ID and a temporary password, sealed on
+   * the record until it is collected. Creating the candidate never depends on
+   * the Workspace — if it is down they are created all the same, and "Sync
+   * everyone to the Workspace" picks them up later.
+   */
+  let workspace: { loginId: string } | null = null;
+  try {
+    workspace = await linkWorkspaceAccount(candidate);
+  } catch (cause) {
+    console.error("Workspace provisioning failed", cause);
+  }
+
   // An existing employee's link opens their employee portal rather than onboarding.
-  return json({ id: candidate.id, token: candidate.token }, 201);
+  return json({ id: candidate.id, token: candidate.token, workspace }, 201);
 }

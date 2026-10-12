@@ -9,6 +9,7 @@ import {
   Card,
   Notice,
   SectionTitle,
+  ThemeToggle,
   Wordmark,
   inputClass,
   inputStyle,
@@ -33,8 +34,9 @@ export default function HrHome() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 lg:py-16">
-      <div className="mb-10">
+      <div className="mb-10 flex items-center justify-between gap-4">
         <Wordmark subtitle="HR portal" />
+        <ThemeToggle />
       </div>
 
       <Invitation onOpen={(token) => router.push(`/hr/${token}`)} />
@@ -46,15 +48,15 @@ export default function HrHome() {
         />
       </Card>
 
-      <p className="mb-4 text-center text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+      <p className="mb-4 text-center text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
         Before you submit anything, read the{" "}
-        <Link href="/hr/privacy" className="font-bold underline" style={{ color: "var(--fr-gold-soft)" }}>
+        <Link href="/hr/privacy" className="font-bold underline" style={{ color: "var(--brand-soft-fg)" }}>
           privacy notice
         </Link>{" "}
         — what we collect, why, how long we keep it, and how to take it back.
       </p>
 
-      <p className="text-center text-xs" style={{ color: "var(--fr-muted)" }}>
+      <p className="text-center text-xs" style={{ color: "var(--fg-muted)" }}>
         Founders —{" "}
         <Link href="/hr/admin" className="font-bold underline">
           open the HR console
@@ -91,7 +93,7 @@ function Invitation({ onOpen }: { onOpen: (token: string) => void }) {
           <li key={step} className="flex items-start gap-3">
             <span
               className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black"
-              style={{ backgroundColor: "rgba(201,162,39,0.16)", color: "var(--fr-gold-soft)" }}
+              style={{ backgroundColor: "var(--brand-soft)", color: "var(--brand-soft-fg)" }}
               aria-hidden
             >
               {index + 1}

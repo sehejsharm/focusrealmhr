@@ -1,157 +1,422 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Focus Realm design system
-   One brand across the whole product: deep navy chrome, gold accent, a light
-   working canvas. Tokens live in @theme so they surface as Tailwind utilities
-   (bg-navy-900, text-gold-500, border-line …) instead of ad-hoc hex values.
+   Focus Realm HR — design system
+   The same blue-and-white brand as the Focus Realm Workspace, taken from the
+   FR monogram (a sky-blue F interlocked with a royal-blue R). The tokens below
+   mirror the Workspace's src/app/globals.css: semantic tokens live on :root
+   (light, the default) and .dark (the same design with the tokens swapped),
+   and surface as Tailwind utilities through @theme inline — bg-bg, bg-surface,
+   text-fg-muted, border-line, bg-brand, bg-success-soft … — so components
+   never hard-code a colour and both themes stay in lockstep.
+
+   Not part of the brand: cyan, teal, violet, purple, pink, gold, pure black.
    ========================================================================== */
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 
-  /* Brand — navy */
-  --color-navy-950: #050f1d;
-  --color-navy-900: #081527;
-  --color-navy-800: #0e2038;
-  --color-navy-700: #16304f;
-  --color-navy-600: #1e3f66;
-  --color-navy-500: #21456e;
-  --color-navy-300: #90a4c0;
+  /* Brand scale — sky (the F) through royal (the R) */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dcebfe;
+  --color-brand-200: #bfdcfe;
+  --color-brand-300: #92c5fd;
+  --color-brand-400: #5aa7f8;
+  --color-brand-500: #2f86f0;
+  --color-brand-600: #1a6ae0;
+  --color-brand-700: #1655c0;
+  --color-brand-800: #18479b;
+  --color-brand-900: #193d7a;
+  --color-brand-950: #12264a;
+  --color-brand-ink: #071630;
 
-  /* Brand — gold */
-  --color-gold-600: #a8871d;
-  --color-gold-500: #c9a227;
-  --color-gold-400: #e0c368;
-  --color-gold-100: #f6edd2;
-  --color-gold-50: #fbf7ea;
+  /* Each theme's canvas, fixed — for theme previews only. */
+  --color-canvas-light: #f5f7fb;
+  --color-canvas-dark: #060a13;
 
-  /* Working canvas — cool neutrals, so navy and gold stay the only hues */
-  --color-canvas: #f2f4f7;
-  --color-surface: #ffffff;
-  --color-line: #dfe3ea;
-  --color-line-strong: #c8cfda;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --color-ink-900: #0f1a2a;
-  --color-ink-700: #33415a;
-  --color-ink-600: #47566f;
-  --color-ink-500: #5b6b85;
-  --color-ink-400: #8492a8;
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2.2s var(--ease-out-expo) infinite;
+  --animate-pop-in: pop-in 220ms var(--ease-out-expo) both;
 
-  /* Enterprise elevation — flat, restrained */
-  --shadow-panel: 0 1px 2px rgba(15, 26, 42, 0.06);
-  --shadow-raised: 0 4px 16px -4px rgba(15, 26, 42, 0.14);
-  --shadow-overlay: 0 18px 44px -12px rgba(8, 21, 39, 0.32);
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes pulse-ring {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    80%, 100% { transform: scale(1.9); opacity: 0; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 }
 
 :root {
-  /* Floor staff use this in bright light — one high-contrast theme. */
   color-scheme: light;
 
-  /* Legacy aliases kept so the onboarding module keeps rendering. */
-  --fr-navy-deep: var(--color-navy-900);
-  --fr-navy: var(--color-navy-800);
-  --fr-navy-soft: var(--color-navy-700);
-  --fr-line: var(--color-navy-500);
-  --fr-gold: var(--color-gold-500);
-  --fr-gold-soft: var(--color-gold-400);
-  --fr-paper: #f5f3ef;
-  --fr-muted: var(--color-navy-300);
+  --bg: #f5f7fb;
+  --bg-subtle: #eef2f8;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --surface-hover: #f3f6fb;
+  --surface-sunken: #f1f4f9;
+  --line: #e3e8f0;
+  --line-strong: #cfd7e3;
+
+  --fg: #0a1426;
+  --fg-muted: #4b5a72;
+  --fg-subtle: #8492a7;
+
+  --brand: #1a6ae0;
+  --brand-hover: #1655c0;
+  --brand-fg: #ffffff;
+  --brand-soft: #eaf3ff;
+  --brand-soft-fg: #1655c0;
+  --ring: rgba(26, 106, 224, 0.35);
+
+  --success: #0f9d6b;
+  --success-soft: #e7f7f0;
+  --warning: #c27a06;
+  --warning-soft: #fdf4e3;
+  --danger: #d93a4a;
+  --danger-soft: #fdecee;
+  --info: #0e8ac7;
+  --info-soft: #e6f5fc;
+
+  --shadow-xs: 0 1px 2px rgba(10, 20, 38, 0.05);
+  --shadow-sm: 0 1px 2px rgba(10, 20, 38, 0.04), 0 2px 8px -2px rgba(10, 20, 38, 0.06);
+  --shadow-md: 0 2px 4px -1px rgba(10, 20, 38, 0.05), 0 10px 28px -8px rgba(10, 20, 38, 0.12);
+  --shadow-lg: 0 8px 16px -6px rgba(10, 20, 38, 0.08), 0 24px 56px -12px rgba(10, 20, 38, 0.2);
+  --shadow-brand: 0 8px 24px -8px rgba(26, 106, 224, 0.55);
+  --shadow-press: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(10, 20, 38, 0.12);
+
+  --glow: radial-gradient(60% 50% at 50% 0%, rgba(47, 134, 240, 0.12), transparent 70%);
+  --scrim: rgba(10, 20, 38, 0.42);
+
+  /* HR additions — no new hues, only accessible pairings of the tokens above.
+     Solid fills that carry white text (primary / destructive buttons) keep
+     WCAG AA in both themes: in light they equal --brand / --danger exactly;
+     in dark they hold the light values, because white on the brighter dark
+     --brand (#3b8ef5) or --danger (#f2606e) falls below 4.5:1. */
+  --brand-solid: #1a6ae0;
+  --brand-solid-hover: #1655c0;
+  --danger-solid: #d93a4a;
 }
 
-body {
-  background-color: var(--color-canvas);
-  color: var(--color-ink-900);
-  font-family: var(--font-sans);
-  font-feature-settings: "cv05", "ss01";
-  -webkit-tap-highlight-color: transparent;
-  -webkit-text-size-adjust: 100%;
-}
+.dark {
+  color-scheme: dark;
 
-button,
-a,
-[role="button"] {
-  touch-action: manipulation;
+  --bg: #060a13;
+  --bg-subtle: #090f1b;
+  --surface: #0c1320;
+  --surface-2: #101929;
+  --surface-hover: #141f33;
+  --surface-sunken: #080d17;
+  --line: #1a2539;
+  --line-strong: #26344e;
+
+  --fg: #e8eef8;
+  --fg-muted: #98a6bd;
+  --fg-subtle: #627089;
+
+  --brand: #3b8ef5;
+  --brand-hover: #5aa7f8;
+  --brand-fg: #ffffff;
+  --brand-soft: rgba(59, 142, 245, 0.12);
+  --brand-soft-fg: #8cc0fb;
+  --ring: rgba(90, 167, 248, 0.45);
+
+  --success: #2fc58c;
+  --success-soft: rgba(47, 197, 140, 0.12);
+  --warning: #f0a72e;
+  --warning-soft: rgba(240, 167, 46, 0.12);
+  --danger: #f2606e;
+  --danger-soft: rgba(242, 96, 110, 0.12);
+  --info: #38b6ec;
+  --info-soft: rgba(56, 182, 236, 0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.35), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 16px -6px rgba(0, 0, 0, 0.5), 0 28px 64px -12px rgba(0, 0, 0, 0.75);
+  --shadow-brand: 0 8px 28px -8px rgba(59, 142, 245, 0.6);
+  --shadow-press: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --glow: radial-gradient(60% 50% at 50% 0%, rgba(59, 142, 245, 0.16), transparent 70%);
+  --scrim: rgba(2, 6, 14, 0.66);
+
+  --brand-solid: #1a6ae0;
+  --brand-solid-hover: #1655c0;
+  --danger-solid: #d93a4a;
 }
 
 /*
- * Tailwind v4's reset returns buttons to cursor: default, so nothing that acts
- * on click signalled it on hover. :where() keeps specificity at zero, so a
- * utility such as cursor-not-allowed on a single element still wins.
+ * Readable status text on a status -soft panel. The raw status colour on its
+ * own soft fill is ~3:1 in light; nudging it toward --fg keeps the same hue at
+ * 5:1+ in light and 8:1+ in dark. Declared on both selectors so a .dark
+ * subtree recomputes them from its own tokens.
  */
-:where(
-    button,
-    [role="button"],
-    summary,
-    select,
-    label:has(> input[type="checkbox"], > input[type="radio"]),
-    input[type="checkbox"],
-    input[type="radio"],
-    input[type="file"],
-    input[type="submit"],
-    input[type="button"]
-  ):not(:disabled, [aria-disabled="true"]) {
-  cursor: pointer;
+:root,
+.dark {
+  --success-soft-fg: color-mix(in srgb, var(--success) 70%, var(--fg));
+  --warning-soft-fg: color-mix(in srgb, var(--warning) 70%, var(--fg));
+  --danger-soft-fg: color-mix(in srgb, var(--danger) 70%, var(--fg));
+  --info-soft-fg: color-mix(in srgb, var(--info) 70%, var(--fg));
 }
 
-:where(button, input, select, [role="button"]):is(:disabled, [aria-disabled="true"]) {
-  cursor: not-allowed;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  /* HR additions (see :root) */
+  --color-brand-solid: var(--brand-solid);
+  --color-brand-solid-hover: var(--brand-solid-hover);
+  --color-danger-solid: var(--danger-solid);
+  --color-success-soft-fg: var(--success-soft-fg);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-info-soft-fg: var(--info-soft-fg);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-brand: var(--shadow-brand);
+  --shadow-press: var(--shadow-press);
+  --color-scrim: var(--scrim);
 }
 
-/* A single, consistent focus treatment for the whole console. */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-gold-500);
-  outline-offset: 2px;
-  border-radius: 0.375rem;
+/* -------------------------------------------------------------------------- */
+/* Paper                                                                      */
+/* Previews of printed documents (the agreement, certificates and letters)   */
+/* look like the PDF in both themes: white paper, brand ink, royal headings. */
+/* They match the colours in lib/onboarding/*pdf.server.ts.                  */
+/* -------------------------------------------------------------------------- */
+
+:root,
+.dark {
+  --paper: #ffffff;
+  --paper-ink: #0a1426;
+  --paper-muted: #4b5a72;
+  --paper-heading: #18479b;
+  --paper-accent: #1a6ae0;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Base                                                                       */
+/* In @layer base, so a utility on a single element (outline-none, a radius,  */
+/* cursor-not-allowed) always wins over these defaults.                       */
+/* -------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 28%, transparent);
+  }
+
+  :where(button, a, [role="button"], summary, label[for]) {
+    touch-action: manipulation;
+  }
+
+  /*
+   * Tailwind v4's reset returns buttons to cursor: default, so nothing that
+   * acts on click signalled it on hover. :where() keeps specificity at zero.
+   */
+  :where(
+      button,
+      [role="button"],
+      [role="menuitem"],
+      [role="option"],
+      summary,
+      select,
+      label:has(> input[type="checkbox"], > input[type="radio"]),
+      input[type="checkbox"],
+      input[type="radio"],
+      input[type="file"],
+      input[type="submit"],
+      input[type="button"]
+    ):not(:disabled, [aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  :where(button, input, select, textarea, [role="button"]):is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
+
+  /* One focus treatment for the whole console: a brand-blue ring. The outline
+     follows each element's own border radius. */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Checkboxes, radios and range inputs take the brand colour. */
+  :where(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+    accent-color: var(--brand);
+  }
+
+  /* Thin, quiet scrollbars that match the surface. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utilities                                                                  */
+/* -------------------------------------------------------------------------- */
 
 /* Numeric columns line up — dashboards read as records, not prose. */
-.tnum {
+@utility tabular {
   font-variant-numeric: tabular-nums;
 }
 
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Brand gradient text, used sparingly for one highlighted word or number. */
+@utility text-gradient-brand {
+  background: linear-gradient(120deg, var(--color-brand-400) 0%, var(--color-brand-600) 55%, var(--color-brand-800) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hero moments and primary calls to action only. */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-500) 0%, var(--color-brand-600) 45%, var(--color-brand-800) 100%);
+}
+
+/* Faint engineering grid behind hero areas. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@utility glass {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+}
+
+@utility skeleton {
+  background-color: var(--surface-sunken);
+  background-image: linear-gradient(90deg, transparent 0, color-mix(in srgb, var(--line) 80%, transparent) 50%, transparent 100%);
+  background-size: 400px 100%;
+  background-repeat: no-repeat;
+  animation: var(--animate-shimmer);
+  border-radius: 8px;
+}
+
 /* Horizontal scrollers (sub-nav, filter rails) keep their own scrollbar off. */
-.no-scrollbar {
+@utility no-scrollbar {
   scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Focus Realm HR — the same navy & gold, on a dark ground. */
-.fr-root {
-  background-color: var(--color-navy-900);
-  color: var(--fr-paper);
-}
-
-.fr-card {
-  background-color: var(--color-navy-800);
-  border: 1px solid var(--color-navy-500);
-  border-radius: 0.75rem;
-}
-
-.fr-rule {
-  border-color: var(--color-navy-500);
-}
-
-@keyframes mise-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
-.mise-pop {
-  animation: mise-pop 300ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Motion                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/* The theme toggle's icon arriving after a switch. */
+@keyframes fr-theme-icon-in {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+.fr-theme-icon-in {
+  animation: fr-theme-icon-in 220ms var(--ease-out-expo) both;
+}
+
+/* Colours change in one frame when the theme switches, not in a cascade of
+   per-element transitions. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mise-pop {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

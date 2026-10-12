@@ -10,7 +10,8 @@ import LearningStage from "@/components/onboarding/LearningStage";
 import MailboxStage from "@/components/onboarding/MailboxStage";
 import StageRail from "@/components/onboarding/StageRail";
 import TestsStage from "@/components/onboarding/TestsStage";
-import { Card, Notice, SectionTitle, Wordmark, formatDate } from "@/components/onboarding/ui";
+import WorkspaceAccess from "@/components/onboarding/WorkspaceAccess";
+import { Card, Notice, SectionTitle, ThemeToggle, Wordmark, formatDate } from "@/components/onboarding/ui";
 import { companyLabel } from "@/lib/onboarding/content";
 import { stageIndex } from "@/lib/onboarding/stage";
 import { type CandidateView } from "@/lib/onboarding/types";
@@ -56,7 +57,7 @@ export default function EmployeePortal() {
   if (state === "loading") {
     return (
       <Shell>
-        <p style={{ color: "var(--fr-muted)" }}>Loading…</p>
+        <p style={{ color: "var(--fg-muted)" }}>Loading…</p>
       </Shell>
     );
   }
@@ -69,7 +70,7 @@ export default function EmployeePortal() {
             title="This link is not valid"
             lead="It may have been mistyped, or withdrawn. Check the link you were sent, or reply to the email it came from."
           />
-          <Link href="/hr" className="text-sm font-bold underline" style={{ color: "var(--fr-gold-soft)" }}>
+          <Link href="/hr" className="text-sm font-bold underline" style={{ color: "var(--brand-soft-fg)" }}>
             Go to sign-in
           </Link>
         </Card>
@@ -105,7 +106,7 @@ function Onboarding({
         <h1 className="text-2xl leading-tight font-bold text-balance sm:text-3xl">
           Welcome, {candidate.details?.fullName ?? candidate.invitedName}.
         </h1>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
           Six steps between here and your first day, starting {formatDate(candidate.startDate)}.
           Your progress is saved as you go — you can close this and come back to the same link.
         </p>
@@ -121,6 +122,10 @@ function Onboarding({
         <TestsStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 2} />
         <ContractStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 3} />
         <MailboxStage token={token} candidate={candidate} onSaved={onSaved} locked={at < 5} />
+        {/* The Workspace login opens on the last step, alongside the mailbox. */}
+        {candidate.workspace && at >= stageIndex("email") && (
+          <WorkspaceAccess token={token} workspace={candidate.workspace} />
+        )}
       </div>
 
       <Footer />
@@ -154,7 +159,7 @@ function EmployeeHome({
         <h1 className="text-2xl leading-tight font-bold text-balance sm:text-3xl">
           Welcome back, {first}.
         </h1>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
           {candidate.role.roleTitle} · {candidate.companies.map(companyLabel).join(" and ")}
         </p>
       </header>
@@ -162,10 +167,10 @@ function EmployeeHome({
       <div className="space-y-5">
         <Card>
           <div className="flex items-start gap-4">
-            <CalendarDays className="size-6 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+            <CalendarDays className="size-6 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
             <div className="min-w-0">
               <h2 className="text-lg font-bold">Your internship</h2>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                 {candidate.termMonths}-month term, {formatDate(candidate.startDate)} →{" "}
                 {formatDate(candidate.endDate)}.{" "}
                 {untilStart > 0
@@ -206,11 +211,13 @@ function EmployeeHome({
 
         {showMailbox && <MailboxStage token={token} candidate={candidate} onSaved={onSaved} locked={false} inPortal />}
 
+        {candidate.workspace && <WorkspaceAccess token={token} workspace={candidate.workspace} />}
+
         {!candidate.existing && (
-          <details className="group fr-card">
+          <details className="group rounded-2xl border border-line bg-surface shadow-sm">
             <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-5 sm:px-6">
               <span className="flex items-center gap-3">
-                <PartyPopper className="size-5" style={{ color: "var(--fr-gold)" }} aria-hidden />
+                <PartyPopper className="size-5" style={{ color: "var(--brand)" }} aria-hidden />
                 <span className="font-bold">Your onboarding record</span>
               </span>
               <ChevronDown className="size-5 transition-transform group-open:rotate-180" aria-hidden />
@@ -244,17 +251,17 @@ function DocumentRow({
   return (
     <li
       className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
-      style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+      style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
     >
       <div className="flex min-w-0 items-start gap-3">
         <Icon
           className="mt-0.5 size-5 shrink-0"
-          style={{ color: href ? "var(--fr-gold)" : "var(--fr-muted)" }}
+          style={{ color: href ? "var(--brand)" : "var(--fg-muted)" }}
           aria-hidden
         />
         <div className="min-w-0">
           <p className="text-sm font-bold">{title}</p>
-          <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--fr-muted)" }}>
+          <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--fg-muted)" }}>
             {status}
           </p>
         </div>
@@ -263,7 +270,7 @@ function DocumentRow({
         <a
           href={href}
           className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold"
-          style={{ backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }}
+          style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
         >
           <Download className="size-4" aria-hidden />
           Download PDF
@@ -275,14 +282,14 @@ function DocumentRow({
 
 function Footer() {
   return (
-    <footer className="mt-10 space-y-4 border-t pt-6 fr-rule">
+    <footer className="mt-10 space-y-4 border-t pt-6 border-line">
       <Notice>
         Something not right, or stuck? Reply to the email your invitation came from — Ali or Sehej
         will sort it out.
       </Notice>
-      <p className="text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+      <p className="text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
         Your personal data is handled under the{" "}
-        <Link href="/hr/privacy" className="underline" style={{ color: "var(--fr-gold-soft)" }}>
+        <Link href="/hr/privacy" className="underline" style={{ color: "var(--brand-soft-fg)" }}>
           privacy notice
         </Link>
         . You can ask to see, correct or erase your data, or withdraw your consent, at any time —
@@ -304,8 +311,9 @@ function Shell({
 }) {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <Wordmark subtitle={subtitle ?? "Focus Realm HR"} href={home} />
+        <ThemeToggle />
       </div>
       {children}
     </div>

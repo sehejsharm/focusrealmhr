@@ -1,10 +1,140 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useLayoutEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
+import { Moon, Sun } from "lucide-react";
 import BrandMark from "../BrandMark";
 
-/** Small brand primitives shared across the onboarding module. */
+/**
+ * Small brand primitives shared across the onboarding module.
+ *
+ * Everything here wears the Focus Realm blue-and-white brand through the
+ * tokens in app/globals.css (bg-surface, text-fg-muted, border-line, bg-brand
+ * …) — never a literal colour — so light and dark stay in lockstep.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Theme                                                                      */
+/* The same mechanism as the Focus Realm Workspace: the preference lives in   */
+/* localStorage under "fr-theme" (light | dark | system, default light), the  */
+/* boot script in app/layout.tsx applies it before first paint, and React     */
+/* reads it as an external store — no flash, and other tabs follow along.     */
+/* -------------------------------------------------------------------------- */
+
+type ThemePreference = "light" | "dark" | "system";
+type ResolvedTheme = "light" | "dark";
+
+const THEME_KEY = "fr-theme";
+
+function readThemePreference(): ThemePreference {
+  try {
+    const value = localStorage.getItem(THEME_KEY);
+    if (value === "light" || value === "dark" || value === "system") return value;
+  } catch {}
+  return "light";
+}
+
+function systemPrefersDark() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/** Puts the right class on <html>. Transitions are suppressed for the instant of the switch. */
+function applyTheme(preference: ThemePreference) {
+  const dark = preference === "dark" || (preference === "system" && systemPrefersDark());
+  const root = document.documentElement;
+  if (root.classList.contains("dark") === dark) return;
+  root.classList.add("theme-switching");
+  root.classList.toggle("dark", dark);
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
+}
+
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(onChange: () => void) {
+  themeListeners.add(onChange);
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const onSystem = () => {
+    if (readThemePreference() === "system") applyTheme("system");
+    onChange();
+  };
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_KEY && event.key !== null) return;
+    applyTheme(readThemePreference());
+    onChange();
+  };
+  media.addEventListener("change", onSystem);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    themeListeners.delete(onChange);
+    media.removeEventListener("change", onSystem);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function themeSnapshot(): ResolvedTheme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function serverThemeSnapshot(): ResolvedTheme {
+  return "light";
+}
+
+function setThemePreference(preference: ThemePreference) {
+  try {
+    localStorage.setItem(THEME_KEY, preference);
+  } catch {}
+  applyTheme(preference);
+  themeListeners.forEach((listener) => listener());
+}
+
+const noop = () => {};
+
+/**
+ * Keeps <html> in step with the saved theme on every page, toggle or not.
+ * Rendered once, in the root layout. It re-applies the preference on mount
+ * (React's development remount clears the class the boot script set) and
+ * follows the system setting and other tabs from then on.
+ */
+export function ThemeSync() {
+  useLayoutEffect(() => {
+    applyTheme(readThemePreference());
+    return subscribeTheme(noop);
+  }, []);
+  return null;
+}
+
+/**
+ * Switches between light and dark and remembers the choice. Place it at the
+ * right end of a page's top bar, after the page's own header actions.
+ */
+export function ThemeToggle({ className = "" }: { className?: string }) {
+  const resolved = useSyncExternalStore(subscribeTheme, themeSnapshot, serverThemeSnapshot);
+  // Only animate the icon after a switch, not on first paint.
+  const [switched, setSwitched] = useState(false);
+  const next: ResolvedTheme = resolved === "dark" ? "light" : "dark";
+  const label = `Switch to ${next} mode`;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setThemePreference(next);
+        setSwitched(true);
+      }}
+      aria-label={label}
+      title={label}
+      className={`inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface text-fg-muted shadow-xs transition-[background-color,border-color,color,transform] duration-150 ease-out hover:border-line-strong hover:bg-surface-hover hover:text-fg active:scale-[0.97] ${className}`}
+    >
+      <span key={resolved} aria-hidden className={`inline-flex ${switched ? "fr-theme-icon-in" : ""}`}>
+        {resolved === "dark" ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}
+      </span>
+    </button>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Brand                                                                      */
+/* -------------------------------------------------------------------------- */
 
 /**
  * The logo, linking home. "Home" depends on who is looking: the console for
@@ -21,25 +151,28 @@ export function Wordmark({
     <Link
       href={href}
       aria-label="Focus Realm — home"
-      className="inline-flex items-center gap-3 rounded-lg transition-opacity hover:opacity-85"
+      className="group inline-flex min-w-0 items-center gap-3 rounded-xl"
     >
-      <BrandMark size={40} />
-      <span className="min-w-0">
-        <span className="block text-sm leading-tight font-bold tracking-[0.18em] uppercase">
+      <BrandMark
+        size={40}
+        variant="tile"
+        className="transition-transform duration-200 ease-out-expo group-hover:-rotate-6 group-hover:scale-105"
+      />
+      <span className="min-w-0 leading-none">
+        <span className="block text-[13px] font-semibold tracking-[0.14em] text-fg uppercase">
           Focus Realm
         </span>
         {subtitle && (
-          <span
-            className="block truncate text-xs leading-tight"
-            style={{ color: "var(--fr-muted)" }}
-          >
-            {subtitle}
-          </span>
+          <span className="mt-1.5 block truncate text-[12.5px] text-fg-muted">{subtitle}</span>
         )}
       </span>
     </Link>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Layout                                                                     */
+/* -------------------------------------------------------------------------- */
 
 export function Card({
   children,
@@ -48,7 +181,13 @@ export function Card({
   children: ReactNode;
   className?: string;
 }) {
-  return <section className={`fr-card p-5 sm:p-6 ${className}`}>{children}</section>;
+  return (
+    <section
+      className={`rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6 ${className}`}
+    >
+      {children}
+    </section>
+  );
 }
 
 export function SectionTitle({
@@ -63,22 +202,21 @@ export function SectionTitle({
   return (
     <header className="mb-5">
       {eyebrow && (
-        <p
-          className="mb-2 text-xs font-bold tracking-[0.18em] uppercase"
-          style={{ color: "var(--fr-gold)" }}
-        >
+        <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-brand uppercase">
           {eyebrow}
         </p>
       )}
-      <h2 className="text-xl leading-tight font-bold text-balance sm:text-2xl">{title}</h2>
-      {lead && (
-        <p className="mt-2 text-sm leading-relaxed text-pretty" style={{ color: "var(--fr-muted)" }}>
-          {lead}
-        </p>
-      )}
+      <h2 className="text-xl leading-tight font-semibold tracking-[-0.02em] text-balance text-fg sm:text-2xl">
+        {title}
+      </h2>
+      {lead && <p className="mt-2 text-sm leading-relaxed text-pretty text-fg-muted">{lead}</p>}
     </header>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Controls                                                                   */
+/* -------------------------------------------------------------------------- */
 
 type ButtonProps = {
   children: ReactNode;
@@ -89,6 +227,18 @@ type ButtonProps = {
   className?: string;
 };
 
+/*
+ * Solid fills use the -solid tokens: identical to --brand / --danger in light,
+ * and held at the deeper value in dark so white text keeps 4.5:1 contrast.
+ */
+const BUTTON_VARIANTS = {
+  primary:
+    "bg-brand-solid text-brand-fg shadow-press hover:bg-brand-solid-hover hover:shadow-brand disabled:shadow-none",
+  ghost:
+    "border border-line bg-surface text-fg shadow-xs hover:border-line-strong hover:bg-surface-hover",
+  danger: "bg-danger-solid text-white shadow-xs hover:brightness-95",
+} as const;
+
 export function Button({
   children,
   onClick,
@@ -98,26 +248,14 @@ export function Button({
   className = "",
 }: ButtonProps) {
   const base =
-    "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45";
-
-  const style =
-    variant === "primary"
-      ? { backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }
-      : variant === "danger"
-        ? { backgroundColor: "#7f1d1d", color: "var(--fr-paper)" }
-        : {
-            backgroundColor: "var(--fr-navy-soft)",
-            color: "var(--fr-paper)",
-            border: "1px solid var(--fr-line)",
-          };
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-semibold transition-[background-color,border-color,color,box-shadow,transform,filter] duration-150 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 [&_svg]:shrink-0";
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      style={style}
-      className={`${base} ${className}`}
+      className={`${base} ${BUTTON_VARIANTS[variant]} ${className}`}
     >
       {children}
     </button>
@@ -135,24 +273,28 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      {hint && (
-        <span className="mb-2 block text-xs leading-snug" style={{ color: "var(--fr-muted)" }}>
-          {hint}
-        </span>
-      )}
+      <span className="mb-1.5 block text-[13px] font-medium text-fg">{label}</span>
+      {hint && <span className="mb-2 block text-xs leading-snug text-fg-muted">{hint}</span>}
       {children}
     </label>
   );
 }
 
+/** Inputs, selects and textareas. The focus ring is brand blue in both themes. */
 export const inputClass =
-  "w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--fr-gold)]";
+  "w-full rounded-[10px] border border-line bg-surface px-3.5 py-2.5 text-sm text-fg shadow-xs outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-line-strong focus:border-brand focus:ring-[3px] focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-danger";
 
-export const inputStyle = {
-  backgroundColor: "var(--fr-navy-deep)",
-  borderColor: "var(--fr-line)",
-  color: "var(--fr-paper)",
+/**
+ * Kept so existing `style={inputStyle}` callers compile; the look now lives
+ * entirely in inputClass.
+ */
+export const inputStyle = {} as const;
+
+const NOTICE_TONES = {
+  info: "border-info/20 bg-info-soft text-info-soft-fg",
+  good: "border-success/20 bg-success-soft text-success-soft-fg",
+  warn: "border-warning/25 bg-warning-soft text-warning-soft-fg",
+  bad: "border-danger/20 bg-danger-soft text-danger-soft-fg",
 } as const;
 
 export function Notice({
@@ -162,18 +304,10 @@ export function Notice({
   tone?: "info" | "good" | "warn" | "bad";
   children: ReactNode;
 }) {
-  const palette = {
-    info: { bg: "rgba(144,164,192,0.12)", fg: "var(--fr-paper)", line: "var(--fr-line)" },
-    good: { bg: "rgba(52,168,110,0.14)", fg: "#a7e8c6", line: "#2f6b4f" },
-    warn: { bg: "rgba(201,162,39,0.14)", fg: "var(--fr-gold-soft)", line: "#7a6320" },
-    bad: { bg: "rgba(220,80,80,0.14)", fg: "#f2b8b8", line: "#7f3535" },
-  }[tone];
-
   return (
     <p
       role={tone === "bad" ? "alert" : undefined}
-      className="rounded-xl border px-4 py-3 text-sm leading-snug text-pretty"
-      style={{ backgroundColor: palette.bg, color: palette.fg, borderColor: palette.line }}
+      className={`rounded-xl border px-4 py-3 text-sm leading-snug text-pretty ${NOTICE_TONES[tone]}`}
     >
       {children}
     </p>

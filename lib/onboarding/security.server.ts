@@ -117,10 +117,6 @@ export function normaliseAadhaar(input: string): string {
   return input.replace(/\D/g, "");
 }
 
-export function isValidAadhaar(digits: string): boolean {
-  return /^\d{12}$/.test(digits);
-}
-
 /** What anyone other than an authenticated admin is allowed to see. */
 export function maskAadhaar(digits: string): string {
   return `XXXX XXXX ${digits.slice(-4)}`;

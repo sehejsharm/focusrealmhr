@@ -13,11 +13,11 @@ import type { IssuedCertificate } from "./types";
  * exactly as it did the day it was approved.
  */
 
-const NAVY = rgb(0.07, 0.16, 0.18);
-const GOLD = rgb(0.79, 0.66, 0.29);
-const INK = rgb(0.12, 0.12, 0.12);
-const MUTED = rgb(0.42, 0.42, 0.42);
-const RULE = rgb(0.78, 0.78, 0.78);
+const HEADING = rgb(0.094, 0.278, 0.608); // #18479b, royal blue
+const ACCENT = rgb(0.102, 0.416, 0.878); // #1a6ae0, brand blue
+const INK = rgb(0.039, 0.078, 0.149); // #0a1426, the brand ink
+const MUTED = rgb(0.294, 0.353, 0.447); // #4b5a72
+const RULE = rgb(0.812, 0.843, 0.89); // #cfd7e3
 
 const MARK = path.join(process.cwd(), "content/onboarding/brand/focus-realm-mark.png");
 
@@ -61,7 +61,7 @@ function centred(page: PDFPage, text: string, y: number, font: PDFFont, size: nu
 }
 
 /** Letter-spaced capitals, centred — "FOCUS REALM". */
-function tracked(page: PDFPage, text: string, y: number, font: PDFFont, size: number, spacing: number, color = GOLD) {
+function tracked(page: PDFPage, text: string, y: number, font: PDFFont, size: number, spacing: number, color = ACCENT) {
   const chars = ascii(text).split("");
   const width = chars.reduce((w, c) => w + font.widthOfTextAtSize(c, size), 0) + spacing * (chars.length - 1);
   let x = (page.getWidth() - width) / 2;
@@ -87,8 +87,8 @@ async function renderCompletion(issued: IssuedCertificate): Promise<Uint8Array> 
   const H = page.getHeight();
 
   // Double frame.
-  page.drawRectangle({ x: 22, y: 22, width: W - 44, height: H - 44, borderColor: GOLD, borderWidth: 2.4 });
-  page.drawRectangle({ x: 32, y: 32, width: W - 64, height: H - 64, borderColor: GOLD, borderWidth: 0.6 });
+  page.drawRectangle({ x: 22, y: 22, width: W - 44, height: H - 44, borderColor: ACCENT, borderWidth: 2.4 });
+  page.drawRectangle({ x: 32, y: 32, width: W - 64, height: H - 64, borderColor: ACCENT, borderWidth: 0.6 });
 
   let y = H - 64;
 
@@ -100,14 +100,14 @@ async function renderCompletion(issued: IssuedCertificate): Promise<Uint8Array> 
   tracked(page, "FOCUS REALM", y, fonts.sansBold, 10, 3.2);
   y -= 44;
 
-  centred(page, text.title, y, fonts.bold, 30, NAVY);
+  centred(page, text.title, y, fonts.bold, 30, HEADING);
   y -= 36;
   centred(page, "This is to certify that", y, fonts.italic, 14, MUTED);
   y -= 46;
 
-  centred(page, text.recipientName, y, fonts.bold, 34, NAVY);
+  centred(page, text.recipientName, y, fonts.bold, 34, HEADING);
   y -= 14;
-  page.drawLine({ start: { x: W / 2 - 170, y }, end: { x: W / 2 + 170, y }, thickness: 1, color: GOLD });
+  page.drawLine({ start: { x: W / 2 - 170, y }, end: { x: W / 2 + 170, y }, thickness: 1, color: ACCENT });
   y -= 30;
 
   const bodyWidth = 650;
@@ -124,14 +124,14 @@ async function renderCompletion(issued: IssuedCertificate): Promise<Uint8Array> 
   const leftX = 96;
   const colWidth = 230;
 
-  page.drawText(ascii(text.signatory.name), { x: leftX, y: baseY + 26, size: 18, font: fonts.italic, color: NAVY });
+  page.drawText(ascii(text.signatory.name), { x: leftX, y: baseY + 26, size: 18, font: fonts.italic, color: HEADING });
   page.drawLine({ start: { x: leftX, y: baseY + 18 }, end: { x: leftX + colWidth, y: baseY + 18 }, thickness: 0.7, color: RULE });
   page.drawText(ascii(text.signatory.name), { x: leftX, y: baseY + 4, size: 10, font: fonts.sansBold, color: INK });
   page.drawText(ascii(`${text.signatory.designation}, Focus Realm`), { x: leftX, y: baseY - 10, size: 9, font: fonts.sans, color: MUTED });
 
   const rightX = W - 96 - colWidth;
   const issuedOn = formatLongDate(new Date(text.issuedOn));
-  page.drawText(ascii(issuedOn), { x: rightX, y: baseY + 26, size: 13, font: fonts.regular, color: NAVY });
+  page.drawText(ascii(issuedOn), { x: rightX, y: baseY + 26, size: 13, font: fonts.regular, color: HEADING });
   page.drawLine({ start: { x: rightX, y: baseY + 18 }, end: { x: rightX + colWidth, y: baseY + 18 }, thickness: 0.7, color: RULE });
   page.drawText("Date of issue", { x: rightX, y: baseY + 4, size: 10, font: fonts.sansBold, color: INK });
   page.drawText(ascii(`Certificate no. ${text.serial}`), { x: rightX, y: baseY - 10, size: 9, font: fonts.sans, color: MUTED });
@@ -162,10 +162,10 @@ async function renderRecommendation(issued: IssuedCertificate): Promise<Uint8Arr
   const markSize = 40;
   if (mark) page.drawImage(mark, { x: MARGIN, y: y - markSize, width: markSize, height: markSize });
   const headX = MARGIN + (mark ? markSize + 12 : 0);
-  page.drawText("FOCUS REALM", { x: headX, y: y - 17, size: 13, font: fonts.sansBold, color: NAVY });
+  page.drawText("FOCUS REALM", { x: headX, y: y - 17, size: 13, font: fonts.sansBold, color: HEADING });
   page.drawText("Pune, Maharashtra, India", { x: headX, y: y - 32, size: 9, font: fonts.sans, color: MUTED });
   y -= markSize + 14;
-  page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + WIDTH, y }, thickness: 1.2, color: GOLD });
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + WIDTH, y }, thickness: 1.2, color: ACCENT });
   y -= 30;
 
   const dateLine = ascii(formatLongDate(new Date(text.issuedOn)));
@@ -180,7 +180,7 @@ async function renderRecommendation(issued: IssuedCertificate): Promise<Uint8Arr
   });
   y -= 34;
 
-  page.drawText(ascii(text.title), { x: MARGIN, y, size: 17, font: fonts.bold, color: NAVY });
+  page.drawText(ascii(text.title), { x: MARGIN, y, size: 17, font: fonts.bold, color: HEADING });
   y -= 30;
 
   const write = (content: string, font: PDFFont, size: number, leading: number, after: number) => {
@@ -206,7 +206,7 @@ async function renderRecommendation(issued: IssuedCertificate): Promise<Uint8Arr
   y -= 6;
   if (text.closing) write(text.closing, fonts.regular, 11.5, 17, 10);
 
-  page.drawText(ascii(text.signatory.name), { x: MARGIN, y: y - 4, size: 20, font: fonts.italic, color: NAVY });
+  page.drawText(ascii(text.signatory.name), { x: MARGIN, y: y - 4, size: 20, font: fonts.italic, color: HEADING });
   y -= 14;
   page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + 200, y }, thickness: 0.7, color: RULE });
   y -= 16;

@@ -61,13 +61,27 @@ export type Stage =
   | "email"
   | "complete";
 
+/**
+ * The last four digits of the candidate's Aadhaar — all anyone sees, and, on
+ * records submitted since 2026-10-12.1, all the portal holds.
+ */
+export function aadhaarLast4Of(details: Pick<CandidateDetails, "aadhaarNumber" | "aadhaarLast4">): string {
+  return details.aadhaarLast4 ?? details.aadhaarNumber?.slice(-4) ?? "";
+}
+
 /** What the candidate submits before anything else can happen. */
 export interface CandidateDetails {
   fullName: string;
   /** "son/daughter of" on the agreement. */
   parentName: string;
-  /** 12 digits, stored unformatted. Never rendered in full outside admin. */
-  aadhaarNumber: string;
+  /**
+   * The full 12 digits, from records submitted before the portal stopped
+   * collecting them (privacy notice 2026-10-12.1). Never rendered in full
+   * outside admin. New records hold only `aadhaarLast4`.
+   */
+  aadhaarNumber?: string;
+  /** The last four digits — all the portal collects now. */
+  aadhaarLast4?: string;
   address: string;
   personalEmail: string;
   phone: string;
@@ -225,6 +239,23 @@ export interface Mailbox {
   sealedPassword?: string;
 }
 
+/**
+ * Their login to the Focus Realm Workspace, the team's employee app. Created
+ * when the candidate is — see lib/onboarding/workspace.server.ts.
+ */
+export interface WorkspaceLogin {
+  /** The employee ID they sign in with, e.g. FR-0042. */
+  loginId: string;
+  provisionedAt: string;
+  /** Set once the temporary password has been viewed. */
+  viewedAt?: string;
+  /**
+   * Temporary password, sealed like the mailbox one and destroyed after a
+   * single view. Absent once viewed, or when the Workspace issued none.
+   */
+  sealedPassword?: string;
+}
+
 export interface Candidate {
   id: string;
   /** Unguessable value in the onboarding link. Treat as a bearer credential. */
@@ -266,6 +297,8 @@ export interface Candidate {
   contractRejection?: { note: string; at: string };
   emailRequestedAt?: string;
   mailbox?: Mailbox;
+  /** The Focus Realm Workspace login, created when the candidate was. */
+  workspace?: WorkspaceLogin;
   /** Every completion certificate and recommendation letter issued, oldest first. */
   certificates?: IssuedCertificate[];
   /**
@@ -292,7 +325,7 @@ export interface CandidateView {
   invitedName: string;
   startDate: string;
   stage: Stage;
-  details: (Omit<CandidateDetails, "aadhaarNumber"> & {
+  details: (Omit<CandidateDetails, "aadhaarNumber" | "aadhaarLast4"> & {
     aadhaarLast4: string;
   }) | null;
   /** So the portal can show the candidate what they agreed to, and when. */
@@ -305,6 +338,8 @@ export interface CandidateView {
   contractRejection: { note: string; at: string } | null;
   emailRequestedAt: string | null;
   mailbox: { address: string; viewed: boolean } | null;
+  /** Their Workspace login ID. The password itself only comes from the one-time reveal. */
+  workspace: { loginId: string; viewed: boolean } | null;
   /** Added directly as an existing employee — there was no onboarding. */
   existing: boolean;
 }
