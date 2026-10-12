@@ -28,7 +28,7 @@ enforced server-side, not just hidden in the UI.
 ```
 /hr                             Landing — paste your invite link
 /hr/[token]                     The candidate's whole onboarding
-/hr/admin                       Founders' console (passcode)
+/hr/admin                       Founders' console (passcode, asked on every visit)
 /hr/admin/[id]                  One candidate: documents and decisions
 /hr/offboarding/[code]          End-of-term certificates
 /hr/privacy                     How candidate data is handled
@@ -62,6 +62,12 @@ Open `/hr/admin`, create a candidate, and send them the generated link.
 - **Candidates declare they are 18 or older.** An agreement with a minor is
   void (Indian Contract Act s. 11); anyone under 18 is told to stop and speak
   to their point of contact.
+- **The founders' console asks for the passcode on every visit** — each new
+  tab or window, a reload, a tab the browser reopens or restores, or coming
+  Back to it — even with a session still running elsewhere. A session lasts
+  two hours at most and ends at **Lock** in the top bar, which locks every
+  open console tab. If a session ends under a page that is open, the gate
+  covers the page instead of replacing it, so nothing typed into it is lost.
 - **Temporary mailbox passwords are encrypted at rest** (AES-256-GCM) and
   destroyed after a single view.
 - **Assessment answer keys stay server-side** (`tests.server.ts`); submissions

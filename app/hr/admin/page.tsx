@@ -15,6 +15,7 @@ import {
   inputClass,
   inputStyle,
 } from "@/components/onboarding/ui";
+import AdminGate, { LockButton, adminFetch } from "@/components/onboarding/AdminGate";
 import {
   BUILT_IN_TRACKS,
   DEFAULT_TERM_MONTHS,
@@ -79,20 +80,24 @@ function needsFounder(row: Row): boolean {
 /* Dashboard                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export default function AdminConsole() {
+export default function AdminConsolePage() {
+  return (
+    <AdminGate>
+      <AdminConsole />
+    </AdminGate>
+  );
+}
+
+function AdminConsole() {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [needsAuth, setNeedsAuth] = useState(false);
   const [creating, setCreating] = useState<null | "invite" | "existing">(null);
 
   const load = useCallback(
     () =>
-      fetch("/api/onboarding/admin/candidates")
+      adminFetch("/api/onboarding/admin/candidates")
         .then(async (response) => {
-          if (response.status === 401) {
-            setNeedsAuth(true);
-            return;
-          }
-          setNeedsAuth(false);
+          // Signed out: the gate is back over the page.
+          if (response.status === 401) return;
           setRows((await response.json()) as Row[]);
         })
         .catch(() => {}),
@@ -122,14 +127,13 @@ export default function AdminConsole() {
     };
   }, [active]);
 
-  if (needsAuth) return <PasscodeGate onDone={load} />;
-
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
         <Wordmark subtitle="HR console" href="/hr/admin" />
         <div className="flex flex-wrap items-center gap-2">
           <ThemeToggle />
+          <LockButton />
           <Button variant="ghost" onClick={load}>
             <RefreshCw className="size-4" aria-hidden />
             Refresh
@@ -427,66 +431,6 @@ function Flag({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Gate                                                                       */
-/* -------------------------------------------------------------------------- */
-
-function PasscodeGate({ onDone }: { onDone: () => void }) {
-  const [passcode, setPasscode] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit() {
-    setBusy(true);
-    setMessage(null);
-
-    const response = await fetch("/api/onboarding/admin/session", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ passcode }),
-    });
-    setBusy(false);
-
-    if (!response.ok) {
-      setMessage("Incorrect passcode.");
-      return;
-    }
-    onDone();
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <Wordmark subtitle="HR console" href="/hr/admin" />
-        <ThemeToggle />
-      </div>
-      <Card>
-        <SectionTitle
-          title="Founders only"
-          lead="This console shows candidates' identity documents. Enter the shared passcode to continue."
-        />
-        <div className="space-y-4">
-          <Field label="Passcode">
-            <input
-              type="password"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
-              className={inputClass}
-              style={inputStyle}
-              autoFocus
-            />
-          </Field>
-          {message && <Notice tone="bad">{message}</Notice>}
-          <Button disabled={busy || !passcode} onClick={submit}>
-            {busy ? "Checking…" : "Enter"}
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /* Invite                                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -527,7 +471,7 @@ function NewCandidate({
     setMessage(null);
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/onboarding/admin/candidates", {
+    const response = await adminFetch("/api/onboarding/admin/candidates", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -918,7 +862,7 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
     setMessage(null);
     setResult(null);
 
-    const response = await fetch("/api/onboarding/admin/workspace/sync", { method: "POST" });
+    const response = await adminFetch("/api/onboarding/admin/workspace/sync", { method: "POST" });
     const data = await response.json().catch(() => ({}));
     setBusy(false);
 
