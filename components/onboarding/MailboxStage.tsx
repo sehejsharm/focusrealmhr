@@ -92,7 +92,7 @@ export default function MailboxStage({
         />
 
         <p className="mb-5 flex items-center gap-2 text-base font-bold break-all">
-          <AtSign className="size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+          <AtSign className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
           {candidate.mailbox.address}
         </p>
 
@@ -162,10 +162,10 @@ function CredentialsPanel({ credentials }: { credentials: Credentials }) {
             <CredentialRow label="Temporary password" value={credentials.password} mono />
           ) : (
             <div>
-              <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+              <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
                 Temporary password
               </dt>
-              <dd className="mt-1 text-sm" style={{ color: "var(--fr-muted)" }}>
+              <dd className="mt-1 text-sm" style={{ color: "var(--fg-muted)" }}>
                 Already collected. Ask the founders to reset it if you no longer have it.
               </dd>
             </div>
@@ -195,7 +195,7 @@ function CredentialsPanel({ credentials }: { credentials: Credentials }) {
           />
         </div>
 
-        <p className="mt-4 text-sm" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-4 text-sm" style={{ color: "var(--fg-muted)" }}>
           Username is your full email address, both times.
         </p>
       </Card>
@@ -207,7 +207,7 @@ function CredentialsPanel({ credentials }: { credentials: Credentials }) {
             <li key={index} className="flex items-start gap-3">
               <span
                 className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black"
-                style={{ backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }}
+                style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
                 aria-hidden
               >
                 {index + 1}
@@ -226,7 +226,7 @@ function CredentialRow({ label, value, mono }: { label: string; value: string; m
 
   return (
     <div>
-      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
         {label}
       </dt>
       <dd className="mt-1 flex flex-wrap items-center gap-3">
@@ -239,7 +239,7 @@ function CredentialRow({ label, value, mono }: { label: string; value: string; m
             setTimeout(() => setCopied(false), 1500);
           }}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold"
-          style={{ backgroundColor: "var(--fr-navy-soft)", border: "1px solid var(--fr-line)" }}
+          style={{ backgroundColor: "var(--surface-hover)", border: "1px solid var(--line)" }}
         >
           <Copy className="size-3.5" aria-hidden />
           {copied ? "Copied" : "Copy"}
@@ -263,22 +263,22 @@ function ServerBlock({
   return (
     <div
       className="rounded-xl border p-4"
-      style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+      style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
     >
-      <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-gold)" }}>
+      <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--brand)" }}>
         {heading}
       </p>
       <dl className="mt-3 space-y-1.5 text-sm">
         <div className="flex justify-between gap-3">
-          <dt style={{ color: "var(--fr-muted)" }}>Server</dt>
+          <dt style={{ color: "var(--fg-muted)" }}>Server</dt>
           <dd className="font-mono font-bold break-all">{host}</dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt style={{ color: "var(--fr-muted)" }}>Port</dt>
+          <dt style={{ color: "var(--fg-muted)" }}>Port</dt>
           <dd className="font-mono font-bold">{port}</dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt style={{ color: "var(--fr-muted)" }}>Encryption</dt>
+          <dt style={{ color: "var(--fg-muted)" }}>Encryption</dt>
           <dd className="font-bold">{security}</dd>
         </div>
       </dl>

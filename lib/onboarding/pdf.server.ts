@@ -15,9 +15,9 @@ const A4: [number, number] = [595.28, 841.89];
 const MARGIN = 56;
 const WIDTH = A4[0] - MARGIN * 2;
 
-const INK = rgb(0.1, 0.1, 0.1);
-const MUTED = rgb(0.42, 0.42, 0.42);
-const RULE = rgb(0.75, 0.75, 0.75);
+const INK = rgb(0.039, 0.078, 0.149); // #0a1426, the brand ink
+const MUTED = rgb(0.294, 0.353, 0.447); // #4b5a72
+const RULE = rgb(0.812, 0.843, 0.89); // #cfd7e3
 
 /**
  * The standard fonts encode WinAnsi only, so anything outside it would throw

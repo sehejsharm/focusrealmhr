@@ -24,12 +24,12 @@ export default function StageRail({ stage }: { stage: Stage }) {
                 className="flex items-center gap-2 rounded-full px-3 py-2"
                 style={{
                   backgroundColor: active
-                    ? "var(--fr-gold)"
+                    ? "var(--brand)"
                     : done
-                      ? "rgba(201,162,39,0.16)"
-                      : "var(--fr-navy)",
-                  color: active ? "var(--fr-navy-deep)" : done ? "var(--fr-gold-soft)" : "var(--fr-muted)",
-                  border: active ? "1px solid var(--fr-gold)" : "1px solid var(--fr-line)",
+                      ? "var(--brand-soft)"
+                      : "var(--surface)",
+                  color: active ? "var(--surface-sunken)" : done ? "var(--brand-soft-fg)" : "var(--fg-muted)",
+                  border: active ? "1px solid var(--brand)" : "1px solid var(--line)",
                 }}
                 aria-current={active ? "step" : undefined}
               >
@@ -39,7 +39,7 @@ export default function StageRail({ stage }: { stage: Stage }) {
                 <span className="text-xs font-bold whitespace-nowrap">{STAGE_LABEL[step]}</span>
               </div>
               {index < steps.length - 1 && (
-                <span className="h-px w-4 shrink-0" style={{ backgroundColor: "var(--fr-line)" }} aria-hidden />
+                <span className="h-px w-4 shrink-0" style={{ backgroundColor: "var(--line)" }} aria-hidden />
               )}
             </li>
           );

@@ -67,16 +67,16 @@ export default function LearningStage({
               key={resource.id}
               className="rounded-xl border p-4"
               style={{
-                borderColor: completedAt ? "rgba(201,162,39,0.45)" : "var(--fr-line)",
-                backgroundColor: "var(--fr-navy-deep)",
+                borderColor: completedAt ? "color-mix(in srgb, var(--brand) 45%, transparent)" : "var(--line)",
+                backgroundColor: "var(--surface-sunken)",
               }}
             >
               <div className="flex items-start gap-3">
                 <span
                   className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                   style={{
-                    backgroundColor: completedAt ? "var(--fr-gold)" : "var(--fr-navy-soft)",
-                    color: completedAt ? "var(--fr-navy-deep)" : "var(--fr-gold)",
+                    backgroundColor: completedAt ? "var(--brand)" : "var(--surface-hover)",
+                    color: completedAt ? "var(--surface-sunken)" : "var(--brand)",
                   }}
                   aria-hidden
                 >
@@ -90,18 +90,18 @@ export default function LearningStage({
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+                  <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
                     {resource.subtitle} · {resource.meta}
                   </p>
                   <h3 className="mt-0.5 text-base leading-snug font-bold text-balance">
                     {resource.title}
                   </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-pretty" style={{ color: "var(--fr-muted)" }}>
+                  <p className="mt-1.5 text-sm leading-relaxed text-pretty" style={{ color: "var(--fg-muted)" }}>
                     {resource.summary}
                   </p>
 
                   {resource.linkPending && (
-                    <p className="mt-2 text-xs" style={{ color: "var(--fr-gold-soft)" }}>
+                    <p className="mt-2 text-xs" style={{ color: "var(--brand-soft-fg)" }}>
                       Opens the shared Drive folder — pick this briefing from inside it.
                     </p>
                   )}
@@ -116,9 +116,9 @@ export default function LearningStage({
                         locked ? "pointer-events-none opacity-45" : ""
                       }`}
                       style={{
-                        backgroundColor: "var(--fr-navy-soft)",
-                        border: "1px solid var(--fr-line)",
-                        color: "var(--fr-paper)",
+                        backgroundColor: "var(--surface-hover)",
+                        border: "1px solid var(--line)",
+                        color: "var(--fg)",
                       }}
                     >
                       {isHandbook ? "Open handbook" : "Watch briefing"}
@@ -126,7 +126,7 @@ export default function LearningStage({
                     </a>
 
                     {completedAt ? (
-                      <span className="text-xs font-bold" style={{ color: "var(--fr-gold-soft)" }}>
+                      <span className="text-xs font-bold" style={{ color: "var(--brand-soft-fg)" }}>
                         Marked done
                       </span>
                     ) : (

@@ -104,19 +104,19 @@ export default function TestsStage({
               key={testId}
               className="rounded-xl border p-4"
               style={{
-                borderColor: passed ? "rgba(201,162,39,0.45)" : "var(--fr-line)",
-                backgroundColor: "var(--fr-navy-deep)",
+                borderColor: passed ? "color-mix(in srgb, var(--brand) 45%, transparent)" : "var(--line)",
+                backgroundColor: "var(--surface-sunken)",
               }}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <h3 className="text-base leading-snug font-bold text-balance">{meta.title}</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--fr-muted)" }}>
+                  <p className="mt-1 text-sm" style={{ color: "var(--fg-muted)" }}>
                     {meta.subtitle}
                   </p>
 
                   {attempts.length > 0 && (
-                    <p className="mt-2 text-xs" style={{ color: "var(--fr-muted)" }}>
+                    <p className="mt-2 text-xs" style={{ color: "var(--fg-muted)" }}>
                       {attempts.length} attempt{attempts.length === 1 ? "" : "s"} · best {best}% ·
                       last {formatDateTime(attempts[attempts.length - 1].at)}
                     </p>
@@ -127,7 +127,7 @@ export default function TestsStage({
                   {passed && (
                     <span
                       className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black"
-                      style={{ backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }}
+                      style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
                     >
                       <Check className="size-3.5" strokeWidth={3} aria-hidden />
                       Passed {best}%
@@ -215,10 +215,10 @@ function TestRunner({
             <p className="mb-2 text-sm font-bold">Go back over:</p>
             <ul className="space-y-1.5">
               {missedReferences.map((reference) => (
-                <li key={reference} className="flex items-start gap-2 text-sm" style={{ color: "var(--fr-muted)" }}>
+                <li key={reference} className="flex items-start gap-2 text-sm" style={{ color: "var(--fg-muted)" }}>
                   <span
                     className="mt-1.5 size-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: "var(--fr-gold)" }}
+                    style={{ backgroundColor: "var(--brand)" }}
                     aria-hidden
                   />
                   {reference}
@@ -260,7 +260,7 @@ function TestRunner({
         {test.questions.map((question, index) => (
           <li key={question.id}>
             <p className="mb-3 text-sm leading-snug font-bold text-pretty">
-              <span style={{ color: "var(--fr-gold)" }}>{index + 1}.</span> {question.prompt}
+              <span style={{ color: "var(--brand)" }}>{index + 1}.</span> {question.prompt}
             </p>
             <div className="space-y-2">
               {question.options.map((option) => {
@@ -270,8 +270,8 @@ function TestRunner({
                     key={option.id}
                     className="flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3"
                     style={{
-                      borderColor: selected ? "var(--fr-gold)" : "var(--fr-line)",
-                      backgroundColor: selected ? "rgba(201,162,39,0.12)" : "var(--fr-navy-deep)",
+                      borderColor: selected ? "var(--brand)" : "var(--line)",
+                      backgroundColor: selected ? "var(--brand-soft)" : "var(--surface-sunken)",
                     }}
                   >
                     <input
@@ -280,7 +280,7 @@ function TestRunner({
                       value={option.id}
                       checked={selected}
                       onChange={() => setAnswers((prev) => ({ ...prev, [question.id]: option.id }))}
-                      className="mt-1 size-4 shrink-0 accent-[var(--fr-gold)]"
+                      className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
                     />
                     <span className="text-sm leading-snug text-pretty">{option.label}</span>
                   </label>

@@ -217,44 +217,19 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* TEMPORARY — removed in the verify phase.                                   */
-/* The old navy-and-gold aliases, re-pointed at the brand tokens so screens    */
-/* that still read var(--fr-*) or use .fr-card / .fr-rule / .fr-root render    */
-/* in blue and white (and follow the theme) until they are migrated to the    */
-/* utilities above. Do not use these in new code.                              */
+/* Paper                                                                      */
+/* Previews of printed documents (the agreement, certificates and letters)   */
+/* look like the PDF in both themes: white paper, brand ink, royal headings. */
+/* They match the colours in lib/onboarding/*pdf.server.ts.                  */
 /* -------------------------------------------------------------------------- */
 
 :root,
 .dark {
-  --fr-navy-deep: var(--surface-sunken);
-  --fr-navy: var(--surface);
-  --fr-navy-soft: var(--surface-hover);
-  --fr-line: var(--line);
-  --fr-gold: var(--brand);
-  --fr-gold-soft: var(--brand-soft-fg);
-  --fr-paper: var(--fg);
-  --fr-muted: var(--fg-muted);
-}
-
-@layer components {
-  /* TEMPORARY — removed in the verify phase. */
-  .fr-root {
-    background-color: var(--bg);
-    color: var(--fg);
-  }
-
-  /* TEMPORARY — removed in the verify phase. Same as Card. */
-  .fr-card {
-    background-color: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 1rem;
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* TEMPORARY — removed in the verify phase. */
-  .fr-rule {
-    border-color: var(--line);
-  }
+  --paper: #ffffff;
+  --paper-ink: #0a1426;
+  --paper-muted: #4b5a72;
+  --paper-heading: #18479b;
+  --paper-accent: #1a6ae0;
 }
 
 /* -------------------------------------------------------------------------- */

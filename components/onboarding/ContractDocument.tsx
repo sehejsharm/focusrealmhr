@@ -20,7 +20,7 @@ export default function ContractDocument({
   return (
     <article
       className="rounded-2xl px-5 py-8 sm:px-10 sm:py-12"
-      style={{ backgroundColor: "#fbfaf7", color: "#1a1a1a" }}
+      style={{ backgroundColor: "var(--paper)", color: "var(--paper-ink)" }}
     >
       <header className="mb-8 border-b border-stone-300 pb-6 text-center">
         <p className="text-[11px] font-bold tracking-[0.22em] text-stone-500 uppercase">

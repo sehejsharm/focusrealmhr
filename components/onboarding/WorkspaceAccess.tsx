@@ -78,7 +78,7 @@ export default function WorkspaceAccess({
       />
 
       <p className="mb-5 flex items-center gap-2 font-mono text-base font-bold">
-        <KeyRound className="size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+        <KeyRound className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
         {workspace.loginId}
       </p>
 
@@ -101,7 +101,7 @@ function CredentialRow({ label, value, mono }: { label: string; value: string; m
 
   return (
     <div>
-      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
         {label}
       </dt>
       <dd className="mt-1 flex flex-wrap items-center gap-3">
@@ -114,7 +114,7 @@ function CredentialRow({ label, value, mono }: { label: string; value: string; m
             setTimeout(() => setCopied(false), 1500);
           }}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold"
-          style={{ backgroundColor: "var(--fr-navy-soft)", border: "1px solid var(--fr-line)" }}
+          style={{ backgroundColor: "var(--surface-hover)", border: "1px solid var(--line)" }}
         >
           <Copy className="size-3.5" aria-hidden />
           {copied ? "Copied" : "Copy"}

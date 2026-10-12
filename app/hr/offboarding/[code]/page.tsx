@@ -9,6 +9,7 @@ import {
   Field,
   Notice,
   SectionTitle,
+  ThemeToggle,
   Wordmark,
   formatDate,
   inputClass,
@@ -59,7 +60,7 @@ export default function OffboardingPage() {
   if (state === "loading") {
     return (
       <Shell>
-        <p style={{ color: "var(--fr-muted)" }}>Loading…</p>
+        <p style={{ color: "var(--fg-muted)" }}>Loading…</p>
       </Shell>
     );
   }
@@ -85,7 +86,7 @@ export default function OffboardingPage() {
         <h1 className="text-2xl leading-tight font-bold text-balance sm:text-3xl">
           {view.status === "done" ? `Thank you, ${first}.` : `Offboarding, ${first}`}
         </h1>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
           {view.roleTitle} · {formatDate(view.startDate)} → {formatDate(view.lastDay)}
         </p>
       </header>
@@ -93,10 +94,10 @@ export default function OffboardingPage() {
       {view.status === "not-yet" && (
         <Card>
           <div className="flex items-start gap-4">
-            <CalendarClock className="size-7 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+            <CalendarClock className="size-7 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
             <div>
               <h2 className="text-lg font-bold">Your offboarding opens on {formatDate(view.opensAt)}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                 That is the day after your last day. Keep this link and come back to it then: you
                 will answer a few short questions about your internship, and then download your
                 documents.
@@ -112,7 +113,7 @@ export default function OffboardingPage() {
 
       {view.status === "done" && <Documents code={code} documents={view.documents} />}
 
-      <footer className="mt-10 border-t pt-6 fr-rule">
+      <footer className="mt-10 border-t pt-6 border-line">
         <Notice>
           Anything not right? Reply to the message this link came in — Ali or Sehej will sort it out.
         </Notice>
@@ -187,7 +188,7 @@ function ExitForm({
                   {index + 1}. {question.label}
                 </legend>
                 {question.hint && (
-                  <p className="text-xs" style={{ color: "var(--fr-muted)" }}>
+                  <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
                     {question.hint}
                   </p>
                 )}
@@ -197,11 +198,11 @@ function ExitForm({
                     return (
                       <label
                         key={option}
-                        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border px-4 text-sm font-bold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--fr-gold-soft)]"
+                        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border px-4 text-sm font-bold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--brand-soft-fg)]"
                         style={{
-                          backgroundColor: chosen ? "var(--fr-gold)" : "var(--fr-navy-deep)",
-                          color: chosen ? "var(--fr-navy-deep)" : "var(--fr-paper)",
-                          borderColor: chosen ? "var(--fr-gold)" : "var(--fr-line)",
+                          backgroundColor: chosen ? "var(--brand)" : "var(--surface-sunken)",
+                          color: chosen ? "var(--surface-sunken)" : "var(--fg)",
+                          borderColor: chosen ? "var(--brand)" : "var(--line)",
                         }}
                       >
                         <input
@@ -252,17 +253,17 @@ function Documents({ code, documents }: { code: string; documents: OffboardingDo
           <li
             key={doc.kind}
             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
-            style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
           >
             <div className="flex min-w-0 items-start gap-3">
               {doc.ready ? (
-                <Award className="mt-0.5 size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+                <Award className="mt-0.5 size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
               ) : (
-                <Hourglass className="mt-0.5 size-5 shrink-0" style={{ color: "var(--fr-muted)" }} aria-hidden />
+                <Hourglass className="mt-0.5 size-5 shrink-0" style={{ color: "var(--fg-muted)" }} aria-hidden />
               )}
               <div className="min-w-0">
                 <p className="text-sm font-bold">{CERTIFICATE_LABEL[doc.kind]}</p>
-                <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--fr-muted)" }}>
+                <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--fg-muted)" }}>
                   {doc.ready && doc.issuedAt
                     ? `Issued ${formatDate(doc.issuedAt)} · ${doc.serial}`
                     : "Being finalised by the founders — come back to this link shortly."}
@@ -273,7 +274,7 @@ function Documents({ code, documents }: { code: string; documents: OffboardingDo
               <a
                 href={`/api/onboarding/offboarding/${code}/certificates/${doc.kind}/pdf`}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold"
-                style={{ backgroundColor: "var(--fr-gold)", color: "var(--fr-navy-deep)" }}
+                style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
               >
                 <Download className="size-4" aria-hidden />
                 Download PDF
@@ -284,7 +285,7 @@ function Documents({ code, documents }: { code: string; documents: OffboardingDo
       </ul>
 
       {!pending && documents.length > 0 && (
-        <p className="mt-5 flex items-center gap-2 text-sm" style={{ color: "var(--fr-gold-soft)" }}>
+        <p className="mt-5 flex items-center gap-2 text-sm" style={{ color: "var(--brand-soft-fg)" }}>
           <Check className="size-4" aria-hidden />
           All done. Thank you for your time at Focus Realm — and good luck with what comes next.
         </p>
@@ -296,8 +297,9 @@ function Documents({ code, documents }: { code: string; documents: OffboardingDo
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 lg:py-12">
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <Wordmark subtitle="Offboarding" href="/hr" />
+        <ThemeToggle />
       </div>
       {children}
     </div>

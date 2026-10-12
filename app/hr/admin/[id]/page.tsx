@@ -11,6 +11,7 @@ import {
   Field,
   Notice,
   SectionTitle,
+  ThemeToggle,
   Wordmark,
   formatDate,
   formatDateTime,
@@ -108,7 +109,7 @@ export default function AdminCandidatePage() {
   if (!candidate) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <p style={{ color: "var(--fr-muted)" }}>Loading…</p>
+        <p style={{ color: "var(--fg-muted)" }}>Loading…</p>
       </div>
     );
   }
@@ -157,24 +158,27 @@ export default function AdminCandidatePage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Wordmark subtitle="HR console" href="/hr/admin" />
+        <div className="flex items-center gap-3">
         <Link
           href="/hr/admin"
           className="inline-flex min-h-10 items-center gap-2 text-sm font-bold"
-          style={{ color: "var(--fr-muted)" }}
+          style={{ color: "var(--fg-muted)" }}
         >
           <ArrowLeft className="size-4" aria-hidden />
           Everyone
         </Link>
+        <ThemeToggle />
+        </div>
       </div>
 
       <header className="mb-6">
         <h1 className="text-2xl leading-tight font-bold text-balance">
           {details?.fullName ?? candidate.invitedName}
         </h1>
-        <p className="mt-1.5 text-sm" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-1.5 text-sm" style={{ color: "var(--fg-muted)" }}>
           {trackOf(candidate).label} · {termMonths}-month term · {formatDate(candidate.startDate)}{" "}
           → {formatDate(endDate)} · currently at{" "}
-          <span style={{ color: "var(--fr-gold-soft)" }}>{STAGE_LABEL[candidate.stage]}</span>
+          <span style={{ color: "var(--brand-soft-fg)" }}>{STAGE_LABEL[candidate.stage]}</span>
         </p>
       </header>
 
@@ -260,9 +264,9 @@ export default function AdminCandidatePage() {
                 rel="noreferrer"
                 className="inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
                 style={{
-                  backgroundColor: "var(--fr-navy-soft)",
-                  border: "1px solid var(--fr-line)",
-                  color: "var(--fr-paper)",
+                  backgroundColor: "var(--surface-hover)",
+                  border: "1px solid var(--line)",
+                  color: "var(--fg)",
                 }}
               >
                 Open {bespokeDocument.originalName}
@@ -310,15 +314,15 @@ export default function AdminCandidatePage() {
             {consent && (
               <div
                 className="mt-5 rounded-xl border p-4"
-                style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+                style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
               >
                 <p
                   className="text-xs font-bold tracking-[0.16em] uppercase"
-                  style={{ color: "var(--fr-gold)" }}
+                  style={{ color: "var(--brand)" }}
                 >
                   Consent on record
                 </p>
-                <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--fr-muted)" }}>
+                <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--fg-muted)" }}>
                   Notice version {consent.noticeVersion}, accepted{" "}
                   {formatDateTime(consent.at)}
                   {consent.ip ? ` from ${consent.ip}` : ""}.
@@ -328,7 +332,7 @@ export default function AdminCandidatePage() {
                     <li
                       key={item}
                       className="rounded-md px-2 py-0.5 font-mono text-[11px]"
-                      style={{ backgroundColor: "var(--fr-navy-soft)", color: "var(--fr-muted)" }}
+                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--fg-muted)" }}
                     >
                       {item}
                     </li>
@@ -340,7 +344,7 @@ export default function AdminCandidatePage() {
             {details.aadhaarFile && (
               <p
                 className="mt-5 rounded-xl px-4 py-3 text-xs leading-relaxed"
-                style={{ backgroundColor: "rgba(201,162,39,0.10)", color: "var(--fr-muted)" }}
+                style={{ backgroundColor: "var(--brand-soft)", color: "var(--fg-muted)" }}
               >
                 Opening this identity document is recorded against the candidate&apos;s record
                 with the time and your IP address. Open it only to verify identity or to
@@ -362,9 +366,9 @@ export default function AdminCandidatePage() {
                 rel="noreferrer"
                 className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
                 style={{
-                  backgroundColor: "var(--fr-navy-soft)",
-                  border: "1px solid var(--fr-line)",
-                  color: "var(--fr-paper)",
+                  backgroundColor: "var(--surface-hover)",
+                  border: "1px solid var(--line)",
+                  color: "var(--fg)",
                 }}
               >
                 Open Aadhaar copy ({details.aadhaarFile.originalName})
@@ -392,7 +396,7 @@ export default function AdminCandidatePage() {
               return (
                 <li key={company.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
                   <span className="font-bold">{company.label} assessment</span>
-                  <span style={{ color: passed ? "var(--fr-gold-soft)" : "var(--fr-muted)" }}>
+                  <span style={{ color: passed ? "var(--brand-soft-fg)" : "var(--fg-muted)" }}>
                     {attempts.length === 0
                       ? "not attempted yet"
                       : `${attempts.length} attempt${attempts.length === 1 ? "" : "s"} · best ${best}% · ${passed ? "passed" : "not passed"}`}
@@ -436,9 +440,9 @@ export default function AdminCandidatePage() {
                   href={`/api/onboarding/admin/candidates/${id}/contract/pdf`}
                   className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
                   style={{
-                    backgroundColor: "var(--fr-navy-soft)",
-                    border: "1px solid var(--fr-line)",
-                    color: "var(--fr-paper)",
+                    backgroundColor: "var(--surface-hover)",
+                    border: "1px solid var(--line)",
+                    color: "var(--fg)",
                   }}
                 >
                   <Download className="size-4" aria-hidden />
@@ -484,7 +488,7 @@ export default function AdminCandidatePage() {
             ) : candidate.mailbox ? (
               <div className="space-y-2 text-sm">
                 <p className="font-bold">{candidate.mailbox.address}</p>
-                <p style={{ color: "var(--fr-muted)" }}>
+                <p style={{ color: "var(--fg-muted)" }}>
                   Created {formatDateTime(candidate.mailbox.provisionedAt)} ·{" "}
                   {candidate.mailbox.collected
                     ? `password collected${
@@ -496,7 +500,7 @@ export default function AdminCandidatePage() {
                 </p>
               </div>
             ) : frozen ? (
-              <p className="text-sm" style={{ color: "var(--fr-muted)" }}>
+              <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
                 No mailbox was created before they were removed.
               </p>
             ) : (
@@ -710,7 +714,7 @@ function CountersignActions({
         </Field>
       </div>
 
-      <p className="text-xs" style={{ color: "var(--fr-muted)" }}>
+      <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
         Typing the name is the company&apos;s electronic signature. It is recorded with the time and
         IP address, and cannot be undone — the agreement becomes fully executed.
       </p>
@@ -776,7 +780,7 @@ function ProvisionForm({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+      <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
         {label}
       </dt>
       <dd className="mt-1 text-sm leading-snug break-words">{value}</dd>
@@ -824,15 +828,15 @@ function AgreementUpload({
       >
         <div
           className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-4"
-          style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+          style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
         >
-          <Upload className="size-5 shrink-0" style={{ color: "var(--fr-gold)" }} aria-hidden />
+          <Upload className="size-5 shrink-0" style={{ color: "var(--brand)" }} aria-hidden />
           <input
             name="document"
             type="file"
             required
             accept="application/pdf,.doc,.docx"
-            className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--fr-navy-soft)] file:px-3 file:py-2 file:text-sm file:font-bold file:text-[var(--fr-paper)]"
+            className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface-hover)] file:px-3 file:py-2 file:text-sm file:font-bold file:text-[var(--fg)]"
           />
         </div>
       </Field>
@@ -875,7 +879,7 @@ function CopyableLink({ link }: { link: string }) {
     <>
       <p
         className="mb-3 rounded-xl border p-3 font-mono text-xs break-all"
-        style={{ borderColor: "var(--fr-line)", backgroundColor: "var(--fr-navy-deep)" }}
+        style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
       >
         {link}
       </p>
@@ -956,7 +960,7 @@ function WorkspaceCard({
         {revealed && <Detail label="Temporary password" value={revealed} />}
       </dl>
 
-      <p className="mt-4 text-sm" style={{ color: "var(--fr-muted)" }}>
+      <p className="mt-4 text-sm" style={{ color: "var(--fg-muted)" }}>
         {status}
       </p>
 
@@ -1070,7 +1074,7 @@ function Offboarding({
           <dl className="space-y-4">
             {EXIT_QUESTIONS.map((question) => (
               <div key={question.id}>
-                <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+                <dt className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
                   {question.label}
                 </dt>
                 <dd className="mt-1 text-sm leading-relaxed whitespace-pre-line break-words">
@@ -1085,7 +1089,7 @@ function Offboarding({
           </dl>
           {link && (
             <div>
-              <p className="mb-2 text-xs" style={{ color: "var(--fr-muted)" }}>
+              <p className="mb-2 text-xs" style={{ color: "var(--fg-muted)" }}>
                 Their link keeps working, so they can download their documents again — including
                 any you approve from here on.
               </p>
@@ -1165,11 +1169,11 @@ function Certificates({
       )}
 
       {history.length > 0 && (
-        <div className="mt-5 border-t pt-4 fr-rule">
-          <p className="mb-2 text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fr-muted)" }}>
+        <div className="mt-5 border-t pt-4 border-line">
+          <p className="mb-2 text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
             Withdrawn
           </p>
-          <ul className="space-y-1.5 text-xs" style={{ color: "var(--fr-muted)" }}>
+          <ul className="space-y-1.5 text-xs" style={{ color: "var(--fg-muted)" }}>
             {history.map((cert) => (
               <li key={cert.serial}>
                 {CERTIFICATE_LABEL[cert.kind]} {cert.serial}, issued {formatDate(cert.issuedAt)} by{" "}
@@ -1218,15 +1222,15 @@ function CertificatePanel({
   const [reason, setReason] = useState("");
 
   const box = {
-    borderColor: "var(--fr-line)",
-    backgroundColor: "var(--fr-navy-deep)",
+    borderColor: "var(--line)",
+    backgroundColor: "var(--surface-sunken)",
   } as const;
 
   if (issued) {
     return (
       <div className="space-y-3 rounded-xl border p-4" style={box}>
         <p className="flex items-center gap-2 text-sm font-bold">
-          <Award className="size-4" style={{ color: "var(--fr-gold)" }} aria-hidden />
+          <Award className="size-4" style={{ color: "var(--brand)" }} aria-hidden />
           {CERTIFICATE_LABEL[kind]}
         </p>
         <Notice tone="good">
@@ -1239,9 +1243,9 @@ function CertificatePanel({
             href={`/api/onboarding/admin/candidates/${id}/certificates/${kind}/pdf`}
             className="inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-sm font-bold"
             style={{
-              backgroundColor: "var(--fr-navy-soft)",
-              border: "1px solid var(--fr-line)",
-              color: "var(--fr-paper)",
+              backgroundColor: "var(--surface-hover)",
+              border: "1px solid var(--line)",
+              color: "var(--fg)",
             }}
           >
             <Download className="size-4" aria-hidden />
@@ -1292,7 +1296,7 @@ function CertificatePanel({
     return (
       <div className="space-y-3 rounded-xl border p-4 text-sm" style={box}>
         <p className="font-bold">{CERTIFICATE_LABEL[kind]}</p>
-        <p style={{ color: "var(--fr-muted)" }}>
+        <p style={{ color: "var(--fg-muted)" }}>
           Not issuing — {name} will not see this document at offboarding.
         </p>
         {!frozen && (
@@ -1313,7 +1317,7 @@ function CertificatePanel({
     return (
       <div className="rounded-xl border p-4 text-sm" style={box}>
         <p className="font-bold">{CERTIFICATE_LABEL[kind]}</p>
-        <p className="mt-1" style={{ color: "var(--fr-muted)" }}>
+        <p className="mt-1" style={{ color: "var(--fg-muted)" }}>
           Not issued.
         </p>
       </div>
@@ -1337,7 +1341,7 @@ function CertificatePanel({
   return (
     <div className="space-y-4 rounded-xl border p-4" style={box}>
       <p className="flex items-center gap-2 text-sm font-bold">
-        <Award className="size-4" style={{ color: "var(--fr-gold)" }} aria-hidden />
+        <Award className="size-4" style={{ color: "var(--brand)" }} aria-hidden />
         {CERTIFICATE_LABEL[kind]} — ready for approval
       </p>
 
@@ -1395,7 +1399,7 @@ function CertificatePanel({
           type="checkbox"
           checked={approved}
           onChange={(e) => setApproved(e.target.checked)}
-          className="mt-0.5 size-4 shrink-0 accent-[var(--fr-gold)]"
+          className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
         />
         <span>
           I have read this {kind === "completion" ? "certificate" : "letter"} and approve issuing it
@@ -1443,20 +1447,20 @@ function CertificatePreview({ text }: { text: CertificateText }) {
   return (
     <div
       className="max-h-96 overflow-y-auto rounded-lg p-5 text-sm leading-relaxed sm:p-6"
-      style={{ backgroundColor: "#fbfaf6", color: "#1f1f1f", fontFamily: "Georgia, 'Times New Roman', serif" }}
+      style={{ backgroundColor: "var(--paper)", color: "var(--paper-ink)", fontFamily: "Georgia, 'Times New Roman', serif" }}
     >
       {text.kind === "completion" ? (
         <div className="text-center">
-          <p className="text-[10px] font-bold tracking-[0.3em]" style={{ color: "#b8962f", fontFamily: "var(--font-inter), sans-serif" }}>
+          <p className="text-[10px] font-bold tracking-[0.3em]" style={{ color: "var(--paper-accent)", fontFamily: "var(--font-geist-sans), sans-serif" }}>
             FOCUS REALM
           </p>
-          <p className="mt-2 text-xl font-bold" style={{ color: "#122a2e" }}>
+          <p className="mt-2 text-xl font-bold" style={{ color: "var(--paper-heading)" }}>
             {text.title}
           </p>
-          <p className="mt-2 italic" style={{ color: "#6b6b6b" }}>
+          <p className="mt-2 italic" style={{ color: "var(--paper-muted)" }}>
             This is to certify that
           </p>
-          <p className="mt-1 text-2xl font-bold" style={{ color: "#122a2e" }}>
+          <p className="mt-1 text-2xl font-bold" style={{ color: "var(--paper-heading)" }}>
             {text.recipientName}
           </p>
           {text.paragraphs.map((p, i) => (
@@ -1464,17 +1468,17 @@ function CertificatePreview({ text }: { text: CertificateText }) {
               {p}
             </p>
           ))}
-          <p className="mt-4 text-xs" style={{ color: "#6b6b6b" }}>
+          <p className="mt-4 text-xs" style={{ color: "var(--paper-muted)" }}>
             {text.signatory.name}, {text.signatory.designation} · Date of issue {issued} · No.{" "}
             {text.serial}
           </p>
         </div>
       ) : (
         <div>
-          <p className="text-xs" style={{ color: "#6b6b6b" }}>
+          <p className="text-xs" style={{ color: "var(--paper-muted)" }}>
             {issued} · Ref. {text.serial}
           </p>
-          <p className="mt-2 text-lg font-bold" style={{ color: "#122a2e" }}>
+          <p className="mt-2 text-lg font-bold" style={{ color: "var(--paper-heading)" }}>
             {text.title}
           </p>
           {text.salutation && <p className="mt-3">{text.salutation}</p>}
@@ -1486,7 +1490,7 @@ function CertificatePreview({ text }: { text: CertificateText }) {
           {text.closing && <p className="mt-4">{text.closing}</p>}
           <p className="mt-2 font-bold">{text.signatory.name}</p>
           <p>{text.signatory.designation}, Focus Realm</p>
-          {text.signatory.contactEmail && <p style={{ color: "#6b6b6b" }}>{text.signatory.contactEmail}</p>}
+          {text.signatory.contactEmail && <p style={{ color: "var(--paper-muted)" }}>{text.signatory.contactEmail}</p>}
         </div>
       )}
     </div>
