@@ -1,6 +1,6 @@
 import { clientIp, error, json, requiredString } from "@/lib/onboarding/api.server";
 import { getCandidateByToken, saveUpload, updateCandidate } from "@/lib/onboarding/store.server";
-import { isValidAadhaar, normaliseAadhaar } from "@/lib/onboarding/security.server";
+import { normaliseAadhaar } from "@/lib/onboarding/security.server";
 import { toCandidateView } from "@/lib/onboarding/view";
 import { PRIVACY_NOTICE_VERSION, missingConsents } from "@/lib/onboarding/compliance";
 import { refreshWorkspaceAccount } from "@/lib/onboarding/workspace.server";
@@ -27,7 +27,7 @@ export async function POST(
   const address = requiredString(form.get("address"), 600);
   const personalEmail = requiredString(form.get("personalEmail"), 200);
   const phone = requiredString(form.get("phone"), 32);
-  const aadhaarRaw = requiredString(form.get("aadhaarNumber"), 32);
+  const aadhaarRaw = requiredString(form.get("aadhaarLast4"), 16);
 
   if (!fullName || !parentName || !address || !personalEmail || !phone || !aadhaarRaw) {
     return error("Every field is required.");
@@ -36,9 +36,14 @@ export async function POST(
     return error("That email address does not look right.");
   }
 
-  const aadhaarNumber = normaliseAadhaar(aadhaarRaw);
-  if (!isValidAadhaar(aadhaarNumber)) {
-    return error("An Aadhaar number is 12 digits.");
+  /*
+   * Only the last four digits. UIDAI's rule for anyone who checks an Aadhaar
+   * without authenticating it is not to collect or store the number, and to
+   * keep only a masked copy — so the full number is never asked for.
+   */
+  const aadhaarLast4 = normaliseAadhaar(aadhaarRaw);
+  if (!/^\d{4}$/.test(aadhaarLast4)) {
+    return error("Enter the last four digits of your Aadhaar number — only those four.");
   }
 
   /*
@@ -68,7 +73,7 @@ export async function POST(
 
   const file = form.get("aadhaarFile");
   if (!(file instanceof File) || file.size === 0) {
-    return error("Attach a copy of your Aadhaar card.");
+    return error("Attach a masked copy of your Aadhaar card.");
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     return error("That file is larger than 8 MB. Attach a smaller scan or photo.");
@@ -82,7 +87,7 @@ export async function POST(
   const details: CandidateDetails = {
     fullName,
     parentName,
-    aadhaarNumber,
+    aadhaarLast4,
     address,
     personalEmail,
     phone,

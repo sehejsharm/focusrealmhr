@@ -10,18 +10,28 @@
  *   - Digital Personal Data Protection Act, 2023 — notice before collection,
  *     free, specific, informed and unambiguous consent given by a clear
  *     affirmative action, purpose limitation, and the right to withdraw.
- *   - Aadhaar Act, 2016 (s. 4(3), s. 29) and the Aadhaar (Sharing of
+ *   - Aadhaar Act, 2016 (s. 4(3), s. 8A, s. 29) and the Aadhaar (Sharing of
  *     Information) Regulations, 2016 — an Aadhaar copy may be accepted as
  *     voluntary proof of identity, must not be published or displayed in full,
- *     and the number must be redacted wherever it is shown.
- *   - Information Technology Act, 2000 (s. 10A and s. 65B) — an agreement
- *     concluded electronically, and the record kept of it.
+ *     and the number must be redacted wherever it is shown. An entity that
+ *     checks an Aadhaar without authenticating it must not collect or store
+ *     the number (s. 8A(4)), and UIDAI's direction is to keep only a masked
+ *     copy — so the portal asks for the last four digits and a masked copy.
+ *   - Indian Contract Act, 1872 (s. 11) — someone under 18 cannot contract, so
+ *     the candidate declares they are 18 or older.
+ *   - Information Technology Act, 2000 (s. 10A) — an agreement concluded
+ *     electronically; and the Bharatiya Sakshya Adhiniyam, 2023 (s. 63, which
+ *     replaced s. 65B of the Evidence Act) — the electronic record kept of it.
  *
  * NOT LEGAL ADVICE. Have counsel review this notice, the retention period and
  * the agreement itself before the module is used with real candidates.
  */
 
-export const PRIVACY_NOTICE_VERSION = "2026-10-10.1";
+/**
+ * 2026-10-12.1: the last four digits of an Aadhaar and a masked copy instead of
+ * the full number, an 18-or-older declaration, and a reply period for requests.
+ */
+export const PRIVACY_NOTICE_VERSION = "2026-10-12.1";
 
 /**
  * The first notice to cover the Focus Realm Workspace, the team's own app.
@@ -62,7 +72,7 @@ export const PURPOSES = [
 
 export const DATA_COLLECTED = [
   "Your name, your parent's name, postal address, phone number and personal email.",
-  "Your Aadhaar number and the copy of your Aadhaar card you upload.",
+  "The last four digits of your Aadhaar number, and the masked copy of your Aadhaar card you upload.",
   "Your progress through the handbooks, briefings and assessments, including scores.",
   "The agreement you sign, the name you type as your signature, and the date, time, IP address and browser recorded at signing.",
 ] as const;
@@ -71,7 +81,7 @@ export const DATA_COLLECTED = [
 export const AADHAAR_SAFEGUARDS = [
   "Giving your Aadhaar is voluntary. If you would rather not, tell your point of contact — another government photo ID (PAN, passport, driving licence or voter ID) can be accepted instead.",
   "No UIDAI authentication, e-KYC or Aadhaar verification is performed. The copy is used only to confirm your identity and to fill in your agreement.",
-  "Your Aadhaar number is never displayed in full anywhere in this portal. Everyone other than the founders sees only the last four digits.",
+  "We never ask for your full Aadhaar number — only its last four digits, and a masked copy of your card that shows no more than that. Download a masked Aadhaar from myAadhaar, or cover the first eight digits on a photo of your card.",
   "The copy is held in private storage that the portal itself cannot read, is never published, shared with any third party, or used for any other purpose.",
   "Every time a founder opens your Aadhaar copy, that access is recorded against your record.",
 ] as const;
@@ -103,7 +113,7 @@ export const RIGHTS = [
   },
   {
     title: "Raise a grievance",
-    body: `Write to ${DATA_FIDUCIARY.grievanceOfficer} at ${DATA_FIDUCIARY.grievanceEmail}. If the answer does not resolve it, you may complain to the Data Protection Board of India.`,
+    body: `Write to ${DATA_FIDUCIARY.grievanceOfficer} at ${DATA_FIDUCIARY.grievanceEmail}. We answer every request and grievance within 30 days of receiving it. If the answer does not resolve it, you may complain to the Data Protection Board of India.`,
   },
 ] as const;
 
@@ -128,13 +138,19 @@ export const CONSENT_ITEMS: ConsentItem[] = [
   {
     id: "aadhaar",
     label:
-      "I am submitting my Aadhaar number and a copy of my Aadhaar card voluntarily, as proof of identity for my internship agreement.",
+      "I am submitting the last four digits of my Aadhaar number and a masked copy of my Aadhaar card voluntarily, as proof of identity for my internship agreement.",
     detail:
-      "I understand no Aadhaar authentication or e-KYC is carried out, that my number will never be shown in full in this portal, and that I could have offered another government photo ID instead.",
+      "I understand no Aadhaar authentication or e-KYC is carried out, that my full Aadhaar number is never asked for or stored, and that I could have offered another government photo ID instead.",
   },
   {
     id: "retention",
     label: `I understand my record is kept for the duration of my internship and three years after it ends, and that I can ask for it to be corrected or erased, or withdraw my consent, by writing to ${DATA_FIDUCIARY.grievanceEmail}.`,
+  },
+  {
+    id: "age",
+    label: "I am 18 years of age or older.",
+    detail:
+      "If you are under 18, do not submit this form — tell your point of contact. An agreement with someone under 18, and consent to this processing, need a parent or guardian.",
   },
   {
     id: "accuracy",

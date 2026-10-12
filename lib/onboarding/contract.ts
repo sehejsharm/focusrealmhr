@@ -1,5 +1,5 @@
 import type { Candidate } from "./types";
-import { DEFAULT_TERM_MONTHS, trackOf } from "./types";
+import { DEFAULT_TERM_MONTHS, aadhaarLast4Of, trackOf } from "./types";
 
 /**
  * The internship agreement, generated from the candidate's own details.
@@ -12,7 +12,8 @@ import { DEFAULT_TERM_MONTHS, trackOf } from "./types";
 export interface ContractFields {
   fullName: string;
   parentName: string;
-  aadhaarNumber: string;
+  /** Only ever the last four — the agreement shows no more of an Aadhaar number. */
+  aadhaarLast4: string;
   address: string;
   roleTitle: string;
   startDate: Date;
@@ -87,7 +88,7 @@ export function buildContract(candidate: Candidate): Contract | null {
   const fields: ContractFields = {
     fullName: candidate.details.fullName,
     parentName: candidate.details.parentName,
-    aadhaarNumber: candidate.details.aadhaarNumber,
+    aadhaarLast4: aadhaarLast4Of(candidate.details),
     address: candidate.details.address,
     roleTitle: role.roleTitle,
     startDate: start,
@@ -109,7 +110,7 @@ export function buildContract(candidate: Candidate): Contract | null {
       },
       {
         label: "AND",
-        body: `${fields.fullName}, son/daughter of ${fields.parentName}, holding Aadhaar Card No. ${formatAadhaar(fields.aadhaarNumber)}, and residing at ${fields.address} (hereinafter referred to as the "Intern").`,
+        body: `${fields.fullName}, son/daughter of ${fields.parentName}, holding Aadhaar Card No. XXXX XXXX ${fields.aadhaarLast4}, and residing at ${fields.address} (hereinafter referred to as the "Intern").`,
       },
       {
         label: "",

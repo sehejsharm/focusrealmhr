@@ -111,7 +111,7 @@ export default function ContractDocument({
             <SignatureLine label="Name" value={contract.fields.fullName} />
             <SignatureLine
               label="Aadhaar Card No."
-              value={`XXXX XXXX ${contract.fields.aadhaarNumber.slice(-4)}`}
+              value={`XXXX XXXX ${contract.fields.aadhaarLast4}`}
             />
             <SignatureLine
               label="Date"
@@ -140,7 +140,8 @@ export default function ContractDocument({
             </p>
           )}
           <p>
-            Aadhaar number is masked in this view; the full number is held on the signed record.
+            The intern&apos;s Aadhaar number is masked throughout; only its last four digits appear on
+            this agreement.
           </p>
         </div>
       )}

@@ -265,7 +265,7 @@ export async function renderContractPdf(
     [
       { label: "Signature", value: signature?.typedName },
       { label: "Name", value: contract.fields.fullName },
-      { label: "Aadhaar No.", value: `XXXX XXXX ${contract.fields.aadhaarNumber.slice(-4)}` },
+      { label: "Aadhaar No.", value: `XXXX XXXX ${contract.fields.aadhaarLast4}` },
       {
         label: "Date",
         value: signature ? formatLongDate(new Date(signature.signedAt)) : undefined,
@@ -294,7 +294,7 @@ export async function renderContractPdf(
       );
     }
     audit.push(
-      "The intern's Aadhaar number is masked above; the full number is held on the signed record.",
+      "The intern's Aadhaar number is masked throughout; only its last four digits appear on this agreement.",
     );
 
     for (const line of audit) {

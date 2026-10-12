@@ -1,6 +1,6 @@
 import { companiesOf, currentStage, endDateOf } from "./stage";
 import type { Candidate, CandidateView } from "./types";
-import { DEFAULT_TERM_MONTHS, trackOf } from "./types";
+import { DEFAULT_TERM_MONTHS, aadhaarLast4Of, trackOf } from "./types";
 
 /** Strips Aadhaar number and sealed credentials for the candidate's own view. */
 export function toCandidateView(candidate: Candidate): CandidateView {
@@ -31,7 +31,7 @@ export function toCandidateView(candidate: Candidate): CandidateView {
           aadhaarFile: details.aadhaarFile,
           submittedAt: details.submittedAt,
           consent: details.consent,
-          aadhaarLast4: details.aadhaarNumber.slice(-4),
+          aadhaarLast4: aadhaarLast4Of(details),
         }
       : null,
     consent: candidate.details?.consent ?? null,

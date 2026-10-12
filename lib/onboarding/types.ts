@@ -61,13 +61,27 @@ export type Stage =
   | "email"
   | "complete";
 
+/**
+ * The last four digits of the candidate's Aadhaar — all anyone sees, and, on
+ * records submitted since 2026-10-12.1, all the portal holds.
+ */
+export function aadhaarLast4Of(details: Pick<CandidateDetails, "aadhaarNumber" | "aadhaarLast4">): string {
+  return details.aadhaarLast4 ?? details.aadhaarNumber?.slice(-4) ?? "";
+}
+
 /** What the candidate submits before anything else can happen. */
 export interface CandidateDetails {
   fullName: string;
   /** "son/daughter of" on the agreement. */
   parentName: string;
-  /** 12 digits, stored unformatted. Never rendered in full outside admin. */
-  aadhaarNumber: string;
+  /**
+   * The full 12 digits, from records submitted before the portal stopped
+   * collecting them (privacy notice 2026-10-12.1). Never rendered in full
+   * outside admin. New records hold only `aadhaarLast4`.
+   */
+  aadhaarNumber?: string;
+  /** The last four digits — all the portal collects now. */
+  aadhaarLast4?: string;
   address: string;
   personalEmail: string;
   phone: string;
@@ -311,7 +325,7 @@ export interface CandidateView {
   invitedName: string;
   startDate: string;
   stage: Stage;
-  details: (Omit<CandidateDetails, "aadhaarNumber"> & {
+  details: (Omit<CandidateDetails, "aadhaarNumber" | "aadhaarLast4"> & {
     aadhaarLast4: string;
   }) | null;
   /** So the portal can show the candidate what they agreed to, and when. */

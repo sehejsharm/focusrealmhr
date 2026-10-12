@@ -120,9 +120,11 @@ export default function PrivacyNoticePage() {
             <Bullets items={AADHAAR_SAFEGUARDS} />
             <p>
               This is consistent with section 4(3) of the Aadhaar Act, 2016, which makes
-              giving Aadhaar voluntary for a purpose like this one, and with the Aadhaar
-              (Sharing of Information) Regulations, 2016, which prohibit publishing or
-              displaying an Aadhaar number.
+              giving Aadhaar voluntary for a purpose like this one; with section 8A(4) of the
+              same Act and UIDAI&apos;s direction that an organisation which checks an Aadhaar
+              without authenticating it should not collect or store the number, and should keep
+              only a masked copy; and with the Aadhaar (Sharing of Information) Regulations,
+              2016, which prohibit publishing or displaying an Aadhaar number.
             </p>
           </Section>
 
@@ -150,9 +152,10 @@ export default function PrivacyNoticePage() {
             <p>
               Identity documents are held in private storage that this portal cannot read
               back into a web page, reachable only with a server-side credential. Your
-              onboarding link is a secret — treat it like a password. Aadhaar numbers are
-              masked everywhere but the founders&apos; console, and every time a founder
-              opens your Aadhaar copy, that access is recorded against your record.
+              onboarding link is a secret — treat it like a password. The portal holds only the
+              last four digits of your Aadhaar number and shows nothing more of it to anyone,
+              and every time a founder opens your Aadhaar copy, that access is recorded against
+              your record.
             </p>
           </Section>
 

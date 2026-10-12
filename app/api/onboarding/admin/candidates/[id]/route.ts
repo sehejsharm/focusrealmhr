@@ -3,7 +3,8 @@ import { getCandidate, updateCandidate } from "@/lib/onboarding/store.server";
 import { buildContract } from "@/lib/onboarding/contract";
 import { companiesOf, currentStage, retentionOf } from "@/lib/onboarding/stage";
 import { formatAadhaar, formatLongDate } from "@/lib/onboarding/contract";
-import { generatePassword, offboardingCode, seal } from "@/lib/onboarding/security.server";
+import { generatePassword, maskAadhaar, offboardingCode, seal } from "@/lib/onboarding/security.server";
+import { aadhaarLast4Of } from "@/lib/onboarding/types";
 import {
   CERTIFICATE_LABEL,
   activeCertificate,
@@ -60,7 +61,12 @@ export async function GET(
     stage: currentStage(candidate),
     companies: companiesOf(candidate),
     retention: retentionOf(candidate),
-    aadhaarFormatted: candidate.details ? formatAadhaar(candidate.details.aadhaarNumber) : null,
+    // In full only on records from before the portal stopped collecting it.
+    aadhaarFormatted: candidate.details
+      ? candidate.details.aadhaarNumber
+        ? formatAadhaar(candidate.details.aadhaarNumber)
+        : maskAadhaar(aadhaarLast4Of(candidate.details))
+      : null,
     contract: buildContract(candidate),
     // The sealed password is never returned — it is the candidate's to view.
     mailbox: mailbox

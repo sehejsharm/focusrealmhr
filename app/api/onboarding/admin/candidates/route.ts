@@ -16,6 +16,7 @@ import {
   DEFAULT_TERM_MONTHS,
   MAX_TERM_MONTHS,
   MIN_TERM_MONTHS,
+  aadhaarLast4Of,
   trackIdFromLabel,
   trackOf,
 } from "@/lib/onboarding/types";
@@ -47,7 +48,7 @@ export async function GET() {
       createdAt: c.createdAt,
       stage: currentStage(c),
       fullName: c.details?.fullName ?? null,
-      aadhaarMasked: c.details ? maskAadhaar(c.details.aadhaarNumber) : null,
+      aadhaarMasked: c.details ? maskAadhaar(aadhaarLast4Of(c.details)) : null,
       signedAt: c.signature?.signedAt ?? null,
       contractVerifiedAt: c.contractVerifiedAt ?? null,
       emailRequestedAt: c.emailRequestedAt ?? null,

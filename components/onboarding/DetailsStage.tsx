@@ -142,12 +142,14 @@ export default function DetailsStage({
           <Field label="Son / daughter of" hint="Parent's full name, for the agreement.">
             <input name="parentName" required maxLength={120} className={inputClass} style={inputStyle} />
           </Field>
-          <Field label="Aadhaar number" hint="12 digits. Spaces are fine.">
+          <Field label="Aadhaar — last four digits" hint="Only the last four. We never ask for the full number.">
             <input
-              name="aadhaarNumber"
+              name="aadhaarLast4"
               required
               inputMode="numeric"
               autoComplete="off"
+              maxLength={4}
+              pattern="[0-9]{4}"
               className={inputClass}
               style={inputStyle}
             />
@@ -172,7 +174,10 @@ export default function DetailsStage({
           />
         </Field>
 
-        <Field label="Copy of your Aadhaar card" hint="JPG, PNG, WebP or PDF, up to 8 MB.">
+        <Field
+          label="Masked copy of your Aadhaar card"
+          hint="One that shows only the last four digits of the number — download a masked Aadhaar from myAadhaar, or cover the first eight digits on a photo of your card. JPG, PNG, WebP or PDF, up to 8 MB."
+        >
           <div
             className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-4"
             style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
