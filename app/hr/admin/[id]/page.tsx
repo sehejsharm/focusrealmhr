@@ -195,6 +195,8 @@ export default function AdminCandidatePage() {
           reason={candidate.removal.reason}
           retention={candidate.retention}
           mailbox={candidate.mailbox?.address ?? null}
+          workspace={candidate.workspace}
+          lastDayOver={candidate.lastDayOver}
           onRestore={() => act({ action: "restore" })}
         />
       )}
@@ -531,6 +533,7 @@ export default function AdminCandidatePage() {
           <RemoveIntern
             name={details?.fullName ?? candidate.invitedName}
             mailbox={candidate.mailbox?.address ?? null}
+            workspaceLoginId={candidate.workspace?.loginId ?? null}
             onRemove={(leftOn, reason) => act({ action: "remove", leftOn, reason })}
           />
         )}
@@ -545,12 +548,16 @@ function RemovedBanner({
   reason,
   retention,
   mailbox,
+  workspace,
+  lastDayOver,
   onRestore,
 }: {
   leftOn: string;
   reason?: string;
   retention: { kind: "keep" | "erase"; until: string } | null;
   mailbox: string | null;
+  workspace: AdminCandidate["workspace"];
+  lastDayOver: boolean;
   onRestore: () => void;
 }) {
   return (
@@ -567,12 +574,26 @@ function RemovedBanner({
               ? `their internship never began, so the privacy notice commits to erasing it by ${formatDate(retention.until)} (within 90 days).`
               : "see the privacy notice for how long."}
         </span>
+        {workspace && (
+          <span className="mt-1 block">
+            {workspace.offboarded
+              ? `Former employee in the Workspace (${workspace.loginId}) since ${formatDateTime(workspace.offboarded.at)} — signed out everywhere, login stopped.`
+              : `The Workspace has not confirmed ${workspace.loginId} is a former employee yet — it is retried every night and on every "Sync everyone to the Workspace".`}
+          </span>
+        )}
         {mailbox && (
           <span className="mt-1 block font-bold">
             Disable {mailbox} in SpaceMail — this console cannot do that for you.
           </span>
         )}
       </Notice>
+      {workspace && (
+        <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+          {lastDayOver
+            ? "Restoring brings them back here, but their last day is over, so they stay a former employee in the Workspace."
+            : "Restoring also lets them sign in to the Workspace again."}
+        </p>
+      )}
       <Button variant="ghost" onClick={onRestore}>
         <RotateCcw className="size-4" aria-hidden />
         Restore to the team
@@ -585,10 +606,12 @@ function RemovedBanner({
 function RemoveIntern({
   name,
   mailbox,
+  workspaceLoginId,
   onRemove,
 }: {
   name: string;
   mailbox: string | null;
+  workspaceLoginId: string | null;
   onRemove: (leftOn: string, reason: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -631,6 +654,13 @@ function RemoveIntern({
               />
             </Field>
           </div>
+
+          {workspaceLoginId && (
+            <Notice tone="warn">
+              This also makes {name} ({workspaceLoginId}) a former employee in the Workspace straight away:
+              signed out on every device, and their login stops working. Their history there is kept.
+            </Notice>
+          )}
 
           {mailbox && (
             <Notice tone="warn">
