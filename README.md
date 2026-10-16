@@ -116,7 +116,8 @@ or an onboarding link sent to the wrong person:
 1. Contain it. Rotate whatever leaked and redeploy:
    `SUPABASE_SERVICE_ROLE_KEY`, the R2 API token (`R2_ACCESS_KEY_ID` /
    `R2_SECRET_ACCESS_KEY` — roll it in Cloudflare), `ONBOARDING_ADMIN_PASSCODE`,
-   `FOCUS_REALM_WORKSPACE_SECRET` (on both sides), or `ONBOARDING_SECRET` —
+   `FOCUS_REALM_WORKSPACE_SECRET` or `FOCUS_REALM_CRM_SECRET` (on both sides —
+   `HR_WEBHOOK_SECRET` on the other app), or `ONBOARDING_SECRET` —
    which signs every founder out, voids offboarding links and makes any
    uncollected mailbox or Workspace password unreadable, so reset those. A
    leaked onboarding link is its own credential: replace that record's
@@ -230,6 +231,53 @@ person is created, updated or removed here all the same, and the error is
 logged: re-run the sync to give anyone who missed out a login. A removal or a
 last day the Workspace has not confirmed is retried by every nightly run and
 every sync until it is; the person's record shows whether it has been.
+
+## Focus Realm Sales CRM
+
+People in the **sales department, and only them,** also get a login to the Focus Realm Sales CRM
+([sehejsharm/crm-focusrealm](https://github.com/sehejsharm/crm-focusrealm)),
+with the **same employee ID** as their Workspace login. Nobody outside sales
+gets one, and nobody outside sales has any data sent to it — never Marketing,
+the Founder's Office or any other department. There is deliberately no
+per-person override: being in a sales role is the only way in.
+
+Who counts as sales: a role whose id, name or title says sales, business
+development or BD (`isSalesRole` in `lib/onboarding/crm-sync.server.ts`; of the
+built-in tracks only **Business Development** qualifies). The CRM checks
+again against its own list (its Settings → HR console); if it skips someone
+this console counts as sales, the sync reports it so the list can be fixed.
+
+Same contract and pattern as the Workspace: `lib/onboarding/crm-sync.server.ts`
+is the CRM's own client (`docs/hr-console/crm-sync.server.ts` there), copied
+verbatim — replace it wholesale, never edit it. `lib/onboarding/crm.server.ts`
+records what comes back; the temporary password is sealed and shown once,
+exactly like the Workspace one.
+
+| Happens here | In the CRM |
+|---|---|
+| A sales person is added | Login created after their Workspace login, with the same ID; temporary password sealed on their record |
+| They submit their details / their mailbox is recorded | Name, email and phone updated |
+| Their last day ends, or a founder removes them | Login switched off, signed out everywhere; history kept; open prospects flagged to founders for reassignment. Nightly cron and every sync until confirmed |
+| A founder restores them | Can sign in again — unless their last day is over |
+| **Reset CRM password**, on their record | New temporary password, shown once; signed out everywhere |
+| **Sync everyone (Workspace & CRM)**, foot of `/hr/admin` | Every active sales person without a CRM login gets one; failures listed |
+
+**Setup.** On the CRM set `HR_WEBHOOK_SECRET` (`openssl rand -hex 32`). Here,
+server-side only:
+
+| Variable | Value |
+|---|---|
+| `FOCUS_REALM_CRM_URL` | The CRM's address, e.g. `https://crm.focusrealm.com` |
+| `FOCUS_REALM_CRM_SECRET` | The same value as `HR_WEBHOOK_SECRET` on the CRM |
+
+With either unset, every CRM call is skipped and the console works as before.
+
+**What it receives.** Name, role and title, department, start date, email
+(the invitation address until a company mailbox exists), the Workspace
+employee ID and — for people who consented under privacy notice `2026-10-16.1`
+or later, the first to name the CRM — phone (`consentCoversCrm`). Never the
+Aadhaar number or copy, the address, the parent's name, the agreement or
+assessment results.
 
 ## Deploying to Vercel
 

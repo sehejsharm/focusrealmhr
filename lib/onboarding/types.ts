@@ -262,6 +262,26 @@ export interface WorkspaceLogin {
   offboarded?: { at: string; cause: "term-ended" | "removed" };
 }
 
+/**
+ * Their login to the Focus Realm Sales CRM — sales people only. Created after
+ * the Workspace login, with the same employee ID. See lib/onboarding/crm.server.ts.
+ */
+export interface CrmLogin {
+  /** The ID they sign in to the CRM with — their Workspace employee ID when they have one. */
+  loginId: string;
+  provisionedAt: string;
+  /** "sales_rep", "sales_head" or "legion", as the CRM decided. */
+  crmRole?: string;
+  viewedAt?: string;
+  /** Temporary password, sealed and destroyed after a single view, like the Workspace one. */
+  sealedPassword?: string;
+  /**
+   * Set once the CRM confirmed their login is switched off: after their last
+   * day, when removed, or when they moved out of sales. Cleared on restore.
+   */
+  offboarded?: { at: string; cause: "term-ended" | "removed" | "left-sales" };
+}
+
 export interface Candidate {
   id: string;
   /** Unguessable value in the onboarding link. Treat as a bearer credential. */
@@ -305,6 +325,8 @@ export interface Candidate {
   mailbox?: Mailbox;
   /** The Focus Realm Workspace login, created when the candidate was. */
   workspace?: WorkspaceLogin;
+  /** The Focus Realm Sales CRM login — sales people only. */
+  crm?: CrmLogin;
   /** Every completion certificate and recommendation letter issued, oldest first. */
   certificates?: IssuedCertificate[];
   /**
@@ -346,6 +368,8 @@ export interface CandidateView {
   mailbox: { address: string; viewed: boolean } | null;
   /** Their Workspace login ID. The password itself only comes from the one-time reveal. */
   workspace: { loginId: string; viewed: boolean } | null;
+  /** Their Sales CRM login, for sales people. Same rule: the password only comes from the reveal. */
+  crm: { loginId: string; viewed: boolean; crmRole: string | null } | null;
   /** Added directly as an existing employee — there was no onboarding. */
   existing: boolean;
 }

@@ -16,6 +16,18 @@ import {
 } from "@/lib/onboarding/certificates";
 import { lastDayOf, offboardingLinkAvailable, offboardingState } from "@/lib/onboarding/offboarding";
 import { resetWorkspacePassword } from "@/lib/onboarding/workspace-sync.server";
+import { resetCrmPassword } from "@/lib/onboarding/crm-sync.server";
+import {
+  claimCrmPassword,
+  crmConfigured,
+  crmLoginUrl,
+  describeCrmFailure,
+  offboardFromCrm,
+  recordCrmLogin,
+  refreshCrmAccount,
+  restoreInCrm,
+  wantsCrm,
+} from "@/lib/onboarding/crm.server";
 import {
   claimWorkspacePassword,
   describeWorkspaceFailure,
@@ -47,7 +59,7 @@ export async function GET(
   const candidate = await getCandidate(id);
   if (!candidate) return error("Not found.", 404);
 
-  const { mailbox, workspace, ...rest } = candidate;
+  const { mailbox, workspace, crm, ...rest } = candidate;
   const offboarding = offboardingState(candidate);
 
   return json({
@@ -88,6 +100,19 @@ export async function GET(
         }
       : null,
     // After this, the daily sweep makes them a former employee in the Workspace.
+    // The Sales CRM, for sales people. Never the sealed password.
+    crm: crm
+      ? {
+          loginId: crm.loginId,
+          crmRole: crm.crmRole ?? null,
+          provisionedAt: crm.provisionedAt,
+          viewedAt: crm.viewedAt ?? null,
+          collected: !crm.sealedPassword,
+          offboarded: crm.offboarded ?? null,
+        }
+      : null,
+    wantsCrm: wantsCrm(candidate),
+    crmLoginUrl: crmLoginUrl(),
     lastDayOver: lastDayOver(candidate),
     lastDay: lastDayOf(candidate),
     // Null while the Workspace connection is switched off.
@@ -160,6 +185,8 @@ export async function POST(
       // Locks them out of the Workspace too, and signs them out everywhere. If
       // the Workspace is down, the daily sweep keeps trying until it is done.
       if (updated) await offboardFromWorkspace(updated, "removed", reason).catch(console.error);
+      // And out of the Sales CRM, if they have a login there.
+      if (updated) await offboardFromCrm(updated, "removed", reason).catch(console.error);
       return json({ ok: true, retention: updated ? retentionOf(updated) : null });
     }
 
@@ -168,7 +195,10 @@ export async function POST(
 
       const restored = await updateCandidate(id, (c) => ({ ...c, removal: undefined, archivedAt: undefined }));
       // Someone whose last day is already over stays a former employee there.
-      if (restored && !lastDayOver(restored)) await restoreInWorkspace(restored).catch(console.error);
+      if (restored && !lastDayOver(restored)) {
+        await restoreInWorkspace(restored).catch(console.error);
+        await restoreInCrm(restored).catch(console.error);
+      }
       return json({ ok: true });
     }
 
@@ -237,6 +267,7 @@ export async function POST(
 
       // Their Workspace sign-in email becomes the new company mailbox.
       if (updated) await refreshWorkspaceAccount(updated).catch(console.error);
+      if (updated) await refreshCrmAccount(updated).catch(console.error);
 
       return json({
         ok: true,
@@ -390,6 +421,46 @@ export async function POST(
 
     // A fresh temporary password, and signed out of the Workspace everywhere.
     // The new one is sealed and revealed exactly like the first.
+    // The Sales CRM's temporary password, shown once — the same rule.
+    case "reveal-crm-password": {
+      if (!candidate.crm) return error("They do not have a Sales CRM login.", 409);
+
+      const password = candidate.crm.sealedPassword ? await claimCrmPassword(id) : null;
+      return json({
+        loginId: candidate.crm.loginId,
+        password,
+        alreadyViewed: !password,
+        loginUrl: crmLoginUrl(),
+      });
+    }
+
+    // A fresh CRM temporary password, and signed out of the CRM everywhere.
+    case "reset-crm-password": {
+      if (!candidate.crm) return error("They do not have a Sales CRM login.", 409);
+      if (candidate.crm.offboarded) return error("Their Sales CRM login is switched off.", 409);
+      if (!crmConfigured()) {
+        return error("The Sales CRM is not connected. Set FOCUS_REALM_CRM_URL and FOCUS_REALM_CRM_SECRET first.", 409);
+      }
+
+      let login;
+      try {
+        login = await resetCrmPassword(id);
+      } catch (cause) {
+        console.error("CRM password reset failed", cause);
+        return error(describeCrmFailure(cause).message, 502);
+      }
+      if (!login?.temporaryPassword) return error("The CRM did not issue a new password.", 502);
+
+      const saved = await recordCrmLogin(id, login).catch((cause) => {
+        console.error("Could not save the reset CRM password", cause);
+        return null;
+      });
+      if (!saved) {
+        return error("The CRM issued a new password, but it could not be saved here. Reset it again.", 500);
+      }
+      return json({ ok: true, loginId: login.loginId });
+    }
+
     case "reset-workspace-password": {
       if (!candidate.workspace) return error("They do not have a Workspace login yet.", 409);
       if (!workspaceConfigured()) {

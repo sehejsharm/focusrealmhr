@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Copy, Eye, KeyRound } from "lucide-react";
-import type { CandidateView } from "@/lib/onboarding/types";
 import { Button, Card, Notice, SectionTitle } from "./ui";
 
 interface Login {
@@ -16,18 +15,38 @@ interface Login {
   sharedEmailWith: string[];
 }
 
+/** The two apps a login can be for. The CRM one is for sales people only. */
+const SYSTEMS = {
+  workspace: {
+    path: "workspace",
+    eyebrow: "Focus Realm Workspace",
+    title: "Your Workspace login",
+    about: "The team's own app, where your work and deadlines live.",
+  },
+  crm: {
+    path: "crm",
+    eyebrow: "Focus Realm Sales CRM",
+    title: "Your Sales CRM login",
+    about: "Where the sales team works its prospects and calls. Calls you make through it are recorded for coaching.",
+  },
+} as const;
+
 /**
- * Their Focus Realm Workspace login, from the last step of onboarding on. The
- * temporary password is revealed once, as the mailbox's is — the server
- * destroys its copy as it hands it over.
+ * Their Focus Realm Workspace login — or, for sales people, their Sales CRM
+ * login — from the last step of onboarding on. The temporary password is
+ * revealed once, as the mailbox's is — the server destroys its copy as it
+ * hands it over.
  */
 export default function WorkspaceAccess({
   token,
   workspace,
+  system = "workspace",
 }: {
   token: string;
-  workspace: NonNullable<CandidateView["workspace"]>;
+  workspace: { loginId: string; viewed: boolean };
+  system?: keyof typeof SYSTEMS;
 }) {
+  const app = SYSTEMS[system];
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [login, setLogin] = useState<Login | null>(null);
@@ -36,12 +55,12 @@ export default function WorkspaceAccess({
     setBusy(true);
     setMessage(null);
 
-    const response = await fetch(`/api/onboarding/session/${token}/workspace`, { method: "POST" });
+    const response = await fetch(`/api/onboarding/session/${token}/${app.path}`, { method: "POST" });
     const data = await response.json();
     setBusy(false);
 
     if (!response.ok) {
-      setMessage(data.error ?? "Could not fetch your Workspace login.");
+      setMessage(data.error ?? `Could not fetch your ${app.eyebrow} login.`);
       return;
     }
     setLogin(data as Login);
@@ -51,8 +70,8 @@ export default function WorkspaceAccess({
     return (
       <Card>
         <SectionTitle
-          eyebrow="Focus Realm Workspace"
-          title="Your Workspace login"
+          eyebrow={app.eyebrow}
+          title={app.title}
           lead={
             login.password
               ? "Save these now — the password is not shown again. You choose your own password the first time you sign in."
@@ -85,12 +104,12 @@ export default function WorkspaceAccess({
   return (
     <Card>
       <SectionTitle
-        eyebrow="Focus Realm Workspace"
-        title="Your Workspace login"
+        eyebrow={app.eyebrow}
+        title={app.title}
         lead={
           workspace.viewed
             ? "Your temporary password has already been collected. If you no longer have it, ask the founders to reset it."
-            : "The team's own app, where your work and deadlines live. You sign in with your employee ID and a temporary password, which is shown once, and once only — have somewhere to save it before you continue."
+            : `${app.about} You sign in with your employee ID and a temporary password, which is shown once, and once only — have somewhere to save it before you continue.`
         }
       />
 

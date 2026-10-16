@@ -457,6 +457,8 @@ function NewCandidate({
     link: string;
     workspace: { loginId: string } | null;
     workspaceError: string | null;
+    crm: { loginId: string } | null;
+    crmError: string | null;
     sharedWith: { id: string; name: string; email: string }[];
   } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -507,6 +509,8 @@ function NewCandidate({
       link: `${window.location.origin}/hr/${data.token}`,
       workspace: data.workspace ?? null,
       workspaceError: data.workspaceError ?? null,
+      crm: data.crm ?? null,
+      crmError: data.crmError ?? null,
       sharedWith: data.sharedWith ?? [],
     });
   }
@@ -543,6 +547,23 @@ function NewCandidate({
             <Notice tone="warn">
               They were added, but their Workspace login could not be created: {created.workspaceError}{" "}
               &ldquo;Sync everyone to the Workspace&rdquo; tries again.
+            </Notice>
+          </div>
+        )}
+
+        {created.crm && (
+          <div className="mb-4">
+            <Notice tone="good">
+              Sales CRM login created too, with the same employee ID: {created.crm.loginId}.
+            </Notice>
+          </div>
+        )}
+
+        {created.crmError && (
+          <div className="mb-4">
+            <Notice tone="warn">
+              Their Sales CRM login was not created yet: {created.crmError} &ldquo;Sync everyone&rdquo;
+              tries again.
             </Notice>
           </div>
         )}
@@ -844,7 +865,9 @@ interface SyncResult {
   skipped: number;
   /** Left — last day over, or removed — and just made former employees there. */
   offboarded: number;
-  failed: { id: string; name: string; email: string; error: string }[];
+  /** The Sales CRM pass, or null while it is not connected. */
+  crm: { synced: number; alreadyLinked: number; offboarded: number } | null;
+  failed: { id: string; name: string; email: string; error: string; system: "Workspace" | "Sales CRM" }[];
 }
 
 /**
@@ -856,6 +879,14 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
+  const [connected, setConnected] = useState<{ workspace: boolean; crm: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/onboarding/admin/workspace/sync")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setConnected(data))
+      .catch(() => {});
+  }, []);
 
   async function sync() {
     setBusy(true);
@@ -878,12 +909,12 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
     <Card className="mt-5">
       <SectionTitle
         title="Focus Realm Workspace"
-        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. They sign in with the employee ID — never their email, which several people may share. This gives a login to every active person who does not have one yet, including anyone whose last attempt failed. Anyone already linked is skipped, so it is safe to run again. Once someone's last day is over, the Workspace makes them a former employee and signs them out everywhere — automatically every night, and whenever you press this."
+        lead="Everyone added here gets a Workspace login: an employee ID like FR-0042 and a temporary password, shown once on their record. They sign in with the employee ID — never their email, which several people may share. This gives a login to every active person who does not have one yet, including anyone whose last attempt failed. Anyone already linked is skipped, so it is safe to run again. Once someone's last day is over, the Workspace makes them a former employee and signs them out everywhere — automatically every night, and whenever you press this. People in sales also get a Sales CRM login with the same employee ID, and lose it the same way when they leave."
       />
       <div className="space-y-4">
         <Button disabled={busy} onClick={sync}>
           <KeyRound className="size-4" aria-hidden />
-          {busy ? "Syncing…" : "Sync everyone to the Workspace"}
+          {busy ? "Syncing…" : connected?.crm ? "Sync everyone (Workspace & CRM)" : "Sync everyone to the Workspace"}
         </Button>
 
         {message && <Notice tone="bad">{message}</Notice>}
@@ -899,6 +930,11 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
               {result.skipped > 0
                 ? ` · ${result.skipped} who left without a login not given one`
                 : ""}
+              {result.crm
+                ? ` · Sales CRM: ${result.crm.synced} new, ${result.crm.alreadyLinked} already linked${
+                    result.crm.offboarded > 0 ? `, ${result.crm.offboarded} switched off` : ""
+                  }`
+                : ""}
               .
               {result.synced > 0 &&
                 " Open a person's record to reveal their temporary password, or let them collect it on their own page."}
@@ -908,7 +944,7 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
               <ul className="space-y-2">
                 {result.failed.map((failure) => (
                   <li
-                    key={failure.id}
+                    key={`${failure.system}-${failure.id}`}
                     className="rounded-xl border p-3 text-sm"
                     style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
                   >
@@ -916,7 +952,7 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
                       {failure.name}
                     </Link>
                     <span className="mt-0.5 block text-xs" style={{ color: "var(--fg-muted)" }}>
-                      {failure.email}
+                      {failure.system} · {failure.email}
                     </span>
                     <span className="mt-1 block text-xs" style={{ color: "var(--danger)" }}>
                       {failure.error}

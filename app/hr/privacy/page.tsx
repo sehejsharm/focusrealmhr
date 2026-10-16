@@ -131,19 +131,32 @@ export default function PrivacyNoticePage() {
           <Section title="Who can see it">
             <p>
               The founders of {DATA_FIDUCIARY.name}. Everything you give through this portal
-              stays here, where only they can see it, with one exception.
+              stays here, where only they can see it, with two exceptions.
             </p>
             <p>
               When you are added, you also get a login to the Focus Realm Workspace, the
               team&apos;s own app. Your name, role, start date and email address (the one you
               were invited at, until you have a company mailbox) are copied there, and so is
               the phone number you give on the details form. Colleagues signed in to the
-              Workspace can see them. Your Aadhaar number and copy, your address and your
-              parent&apos;s name never leave this portal.
+              Workspace can see them.
+            </p>
+            <p>
+              If you join the sales department — Business Development or another sales
+              role — you also get a login to the Focus Realm Sales CRM, where the sales team
+              manages its prospects and calls. The same details are copied there: your name,
+              role, start date, email address and the phone number you give on the details form.
+              Founders and sales heads signed in to the CRM can see them. Sales calls you make
+              through the CRM are recorded, and the recordings are analysed to coach the sales
+              team. Nobody outside the sales department — Marketing, the Founder&apos;s Office
+              or any other — gets a CRM login or has any data sent to the CRM.
+            </p>
+            <p>
+              Your Aadhaar number and copy, your address, your parent&apos;s name, your
+              agreement and your assessment results never leave this portal.
             </p>
             <p>
               Your data is not shared with any other person or organisation, other than the
-              hosting and storage providers that run this portal and the Workspace on our
+              hosting and storage providers that run this portal, the Workspace and the Sales CRM on our
               instructions, and any disclosure a court or a law requires us to make.
             </p>
           </Section>

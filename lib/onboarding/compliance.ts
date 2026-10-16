@@ -28,10 +28,12 @@
  */
 
 /**
+ * 2026-10-16.1: names the Focus Realm Sales CRM as a recipient for people in
+ * sales (see CRM_NOTICE_VERSION).
  * 2026-10-12.1: the last four digits of an Aadhaar and a masked copy instead of
  * the full number, an 18-or-older declaration, and a reply period for requests.
  */
-export const PRIVACY_NOTICE_VERSION = "2026-10-12.1";
+export const PRIVACY_NOTICE_VERSION = "2026-10-16.1";
 
 /**
  * The first notice to cover the Focus Realm Workspace, the team's own app.
@@ -42,14 +44,32 @@ export const PRIVACY_NOTICE_VERSION = "2026-10-12.1";
  */
 export const WORKSPACE_NOTICE_VERSION = "2026-10-10.1";
 
-/** Whether a consent was given under a notice that covers the Workspace. */
-export function consentCoversWorkspace(consent: { noticeVersion: string } | null | undefined): boolean {
+/**
+ * The first notice to cover the Focus Realm Sales CRM. As with the Workspace,
+ * a sales person who consented earlier keeps their phone number out of it;
+ * their name, email, role and start date still go, because a CRM login cannot
+ * exist without them. See lib/onboarding/crm.server.ts.
+ */
+export const CRM_NOTICE_VERSION = "2026-10-16.1";
+
+/** Whether a consent was given under `minimum` or a later notice. */
+function consentFrom(consent: { noticeVersion: string } | null | undefined, minimum: string): boolean {
   const version = consent?.noticeVersion ?? "";
   // Versions are "<date it took effect>.<revision that day>", so they sort naturally.
   return (
     /^\d{4}-\d{2}-\d{2}\.\d+$/.test(version) &&
-    version.localeCompare(WORKSPACE_NOTICE_VERSION, "en", { numeric: true }) >= 0
+    version.localeCompare(minimum, "en", { numeric: true }) >= 0
   );
+}
+
+/** Whether a consent was given under a notice that covers the Workspace. */
+export function consentCoversWorkspace(consent: { noticeVersion: string } | null | undefined): boolean {
+  return consentFrom(consent, WORKSPACE_NOTICE_VERSION);
+}
+
+/** Whether a consent was given under a notice that covers the Sales CRM. */
+export function consentCoversCrm(consent: { noticeVersion: string } | null | undefined): boolean {
+  return consentFrom(consent, CRM_NOTICE_VERSION);
 }
 
 /** Overridable per deployment — these appear in the notice the candidate reads. */
@@ -67,6 +87,7 @@ export const PURPOSES = [
   "To run and record your onboarding — the handbooks, briefings and assessments.",
   "To create your company mailbox once your agreement is verified.",
   "To give you a login to the Focus Realm Workspace, the team's own app, and keep your name, role and contact details there up to date.",
+  "If you join the sales department, to give you a login to the Focus Realm Sales CRM, where the sales team manages its prospects and calls, and keep your name, role and contact details there up to date.",
   "To keep the records the Company is required to keep about its engagements.",
 ] as const;
 
