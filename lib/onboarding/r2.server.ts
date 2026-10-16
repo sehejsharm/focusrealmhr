@@ -37,13 +37,21 @@ export function r2(): R2 | null {
 
   cached = {
     async put(key, bytes, contentType) {
-      const res = await client.fetch(url(key), {
+      // Exactly these bytes (a Buffer may share a larger pool).
+      const body = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(body).set(bytes);
+      // Sign, then send the bytes ourselves: a signed Request carries its body
+      // as a stream, which goes out without a Content-Length, and R2 refuses
+      // that (411 Length Required).
+      const signed = await client.sign(url(key), {
         method: "PUT",
-        // Exactly these bytes, as a plain ArrayBuffer (a Buffer may share a larger pool).
-        body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+        body,
         // Never overwrite: a name that already exists is refused (412).
         headers: { "content-type": contentType || "application/octet-stream", "if-none-match": "*" },
       });
+      const headers = new Headers(signed.headers);
+      headers.set("content-length", String(body.byteLength));
+      const res = await fetch(signed.url, { method: "PUT", headers, body });
       if (!res.ok) throw new Error(`R2 refused the upload (${res.status}).`);
     },
     async size(key) {
