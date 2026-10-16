@@ -57,6 +57,15 @@ export function toCandidateView(candidate: Candidate): CandidateView {
           viewed: Boolean(candidate.workspace.viewedAt) || !candidate.workspace.sealedPassword,
         }
       : null,
+    // Not once it is switched off: they can no longer sign in with it.
+    crm:
+      candidate.crm && !candidate.crm.offboarded
+        ? {
+            loginId: candidate.crm.loginId,
+            viewed: Boolean(candidate.crm.viewedAt) || !candidate.crm.sealedPassword,
+            crmRole: candidate.crm.crmRole ?? null,
+          }
+        : null,
     existing: Boolean(candidate.existing),
   };
 }

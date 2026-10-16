@@ -4,7 +4,7 @@ Focus Realm HR: the internal flow that takes a selected intern from offer to
 first day, plus the founders' console behind it and the offboarding
 certificates at the end of a term.
 
-Next.js App Router, Tailwind v4, Supabase for storage. Every surface lives under
+Next.js App Router, Tailwind v4, Supabase for records and Cloudflare R2 for uploaded files. Every surface lives under
 `/hr`; the bare root forwards there. Nothing here is indexed.
 
 ## The flow
@@ -50,8 +50,8 @@ Open `/hr/admin`, create a candidate, and send them the generated link.
 
 ## Handling of personal data
 
-- **Aadhaar uploads never enter `public/`.** They go to a private Supabase
-  bucket under a random filename, and stream only through an
+- **Aadhaar uploads never enter `public/`.** They go to a private Cloudflare R2
+  bucket (or, before R2 is set up, a private Supabase bucket) under a random filename, and stream only through an
   admin-authenticated route.
 - **Only the last four digits of an Aadhaar are collected**, with a masked
   copy of the card. An organisation that checks an Aadhaar without
@@ -105,16 +105,19 @@ internship that never began, three years after one that ended — or when a
 person asks and nothing requires the record to be kept:
 
 1. Delete the files named in the record's `details.aadhaarFile.storedAs` and
-   `agreement.document.storedAs` from the `onboarding-aadhaar` bucket.
+   `agreement.document.storedAs` from the R2 bucket **and** the Supabase
+   `onboarding-aadhaar` bucket (older files may still be in either).
 2. Delete the row from `onboarding_candidates`.
 3. Offboard their Workspace account, if they still have one.
 
-**If personal data leaks** — the service-role key, the database, the bucket,
+**If personal data leaks** — the service-role key, the R2 keys, the database, a bucket,
 or an onboarding link sent to the wrong person:
 
 1. Contain it. Rotate whatever leaked and redeploy:
-   `SUPABASE_SERVICE_ROLE_KEY`, `ONBOARDING_ADMIN_PASSCODE`,
-   `FOCUS_REALM_WORKSPACE_SECRET` (on both sides), or `ONBOARDING_SECRET` —
+   `SUPABASE_SERVICE_ROLE_KEY`, the R2 API token (`R2_ACCESS_KEY_ID` /
+   `R2_SECRET_ACCESS_KEY` — roll it in Cloudflare), `ONBOARDING_ADMIN_PASSCODE`,
+   `FOCUS_REALM_WORKSPACE_SECRET` or `FOCUS_REALM_CRM_SECRET` (on both sides —
+   `HR_WEBHOOK_SECRET` on the other app), or `ONBOARDING_SECRET` —
    which signs every founder out, voids offboarding links and makes any
    uncollected mailbox or Workspace password unreadable, so reset those. A
    leaked onboarding link is its own credential: replace that record's
@@ -130,15 +133,37 @@ or an onboarding link sent to the wrong person:
 
 ## Storage
 
-Supabase, reached only from `lib/onboarding/store.server.ts`:
+Reached only from `lib/onboarding/store.server.ts` (R2 through
+`lib/onboarding/r2.server.ts`):
 
 | | |
 |---|---|
-| `public.onboarding_candidates` | One row per candidate — the record as `jsonb`, plus indexed `id`/`token`/`created_at` and a `version` for optimistic concurrency |
-| `onboarding-aadhaar` bucket | The uploaded Aadhaar copies, private |
+| Supabase `public.onboarding_candidates` | One row per candidate — the record as `jsonb`, plus indexed `id`/`token`/`created_at` and a `version` for optimistic concurrency |
+| Cloudflare R2 bucket (`R2_BUCKET`) | Uploaded files — Aadhaar copies and bespoke agreements — private. 10 GB free |
+| Supabase `onboarding-aadhaar` bucket | Files from before the move to R2, and every file while R2 is not configured |
 
-Both have **RLS enabled with no policies at all**, so the anon key cannot touch
-either one. The service-role key is the only way in, and it is used
+A file is stored under a random 32-hex name and that name is all a record
+holds, so it can live in either bucket: reads try R2 first, then Supabase.
+
+**Moving files to R2.**
+
+1. In Cloudflare, create an R2 bucket with the location hint **Asia-Pacific**
+   (it keeps Indian residents' Aadhaar copies in the region). Leave public
+   access, the `r2.dev` URL and custom domains **off**.
+2. Under R2 → Manage API tokens, create a token with **Object Read & Write**
+   permission, limited to that bucket.
+3. Add `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and
+   `R2_BUCKET` to Vercel (Production) and redeploy. New uploads now go to R2.
+4. Copy the older files across, from a machine with the Supabase and R2
+   variables set:
+   `npm run uploads:copy-to-r2 -- --dry-run`, then `npm run uploads:copy-to-r2`.
+   It skips anything already copied, checks every file's size in R2, and
+   deletes nothing.
+5. Open a few Aadhaar copies and agreements in the console. Once they all open,
+   empty the Supabase `onboarding-aadhaar` bucket to free its space.
+
+The Supabase table and bucket have **RLS enabled with no policies at all**, so
+the anon key cannot touch either one. The service-role key is the only way in, and it is used
 server-side only. Concurrent writes retry against fresh state rather than
 overwriting, so quick successive actions can't clobber each other.
 
@@ -207,11 +232,59 @@ logged: re-run the sync to give anyone who missed out a login. A removal or a
 last day the Workspace has not confirmed is retried by every nightly run and
 every sync until it is; the person's record shows whether it has been.
 
+## Focus Realm Sales CRM
+
+People in the **sales department, and only them,** also get a login to the Focus Realm Sales CRM
+([sehejsharm/crm-focusrealm](https://github.com/sehejsharm/crm-focusrealm)),
+with the **same employee ID** as their Workspace login. Nobody outside sales
+gets one, and nobody outside sales has any data sent to it — never Marketing,
+the Founder's Office or any other department. There is deliberately no
+per-person override: being in a sales role is the only way in.
+
+Who counts as sales: a role whose id, name or title says sales, business
+development or BD (`isSalesRole` in `lib/onboarding/crm-sync.server.ts`; of the
+built-in tracks only **Business Development** qualifies). The CRM checks
+again against its own list (its Settings → HR console); if it skips someone
+this console counts as sales, the sync reports it so the list can be fixed.
+
+Same contract and pattern as the Workspace: `lib/onboarding/crm-sync.server.ts`
+is the CRM's own client (`docs/hr-console/crm-sync.server.ts` there), copied
+verbatim — replace it wholesale, never edit it. `lib/onboarding/crm.server.ts`
+records what comes back; the temporary password is sealed and shown once,
+exactly like the Workspace one.
+
+| Happens here | In the CRM |
+|---|---|
+| A sales person is added | Login created after their Workspace login, with the same ID; temporary password sealed on their record |
+| They submit their details / their mailbox is recorded | Name, email and phone updated |
+| Their last day ends, or a founder removes them | Login switched off, signed out everywhere; history kept; open prospects flagged to founders for reassignment. Nightly cron and every sync until confirmed |
+| A founder restores them | Can sign in again — unless their last day is over |
+| **Reset CRM password**, on their record | New temporary password, shown once; signed out everywhere |
+| **Sync everyone (Workspace & CRM)**, foot of `/hr/admin` | Every active sales person without a CRM login gets one; failures listed |
+
+**Setup.** On the CRM set `HR_WEBHOOK_SECRET` (`openssl rand -hex 32`). Here,
+server-side only:
+
+| Variable | Value |
+|---|---|
+| `FOCUS_REALM_CRM_URL` | The CRM's address, e.g. `https://crm.focusrealm.com` |
+| `FOCUS_REALM_CRM_SECRET` | The same value as `HR_WEBHOOK_SECRET` on the CRM |
+
+With either unset, every CRM call is skipped and the console works as before.
+
+**What it receives.** Name, role and title, department, start date, email
+(the invitation address until a company mailbox exists), the Workspace
+employee ID and — for people who consented under privacy notice `2026-10-16.1`
+or later, the first to name the CRM — phone (`consentCoversCrm`). Never the
+Aadhaar number or copy, the address, the parent's name, the agreement or
+assessment results.
+
 ## Deploying to Vercel
 
 1. Import the repo — Next.js is detected, no build settings needed.
-2. Set all four variables from `.env.example` in **Settings → Environment
-   Variables**. `SUPABASE_SERVICE_ROLE_KEY` must be server-side only: do not
+2. Set the variables from `.env.example` in **Settings → Environment
+   Variables** — the first four are required, the Workspace, cron and R2 ones
+   optional. `SUPABASE_SERVICE_ROLE_KEY` must be server-side only: do not
    give it a `NEXT_PUBLIC_` prefix.
 3. Deploy.
 

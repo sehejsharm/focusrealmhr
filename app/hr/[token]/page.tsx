@@ -126,6 +126,9 @@ function Onboarding({
         {candidate.workspace && at >= stageIndex("email") && (
           <WorkspaceAccess token={token} workspace={candidate.workspace} />
         )}
+        {candidate.crm && at >= stageIndex("email") && (
+          <WorkspaceAccess token={token} workspace={candidate.crm} system="crm" />
+        )}
       </div>
 
       <Footer />
@@ -212,6 +215,7 @@ function EmployeeHome({
         {showMailbox && <MailboxStage token={token} candidate={candidate} onSaved={onSaved} locked={false} inPortal />}
 
         {candidate.workspace && <WorkspaceAccess token={token} workspace={candidate.workspace} />}
+        {candidate.crm && <WorkspaceAccess token={token} workspace={candidate.crm} system="crm" />}
 
         {!candidate.existing && (
           <details className="group rounded-2xl border border-line bg-surface shadow-sm">

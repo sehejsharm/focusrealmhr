@@ -40,7 +40,20 @@ import { formatLongDate } from "@/lib/onboarding/contract";
 import type { CertificateKind, CertificateText, CertificateWindow } from "@/lib/onboarding/types";
 import { EXIT_QUESTIONS, OFFBOARDING_LINK_DAYS_BEFORE_END, type OffboardingState } from "@/lib/onboarding/offboarding";
 
-interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "workspace"> {
+interface AdminCandidate extends Omit<Candidate, "mailbox" | "companies" | "workspace" | "crm"> {
+  /** Their Sales CRM login — sales people only. The sealed password never leaves the server. */
+  crm: {
+    loginId: string;
+    crmRole: string | null;
+    provisionedAt: string;
+    viewedAt: string | null;
+    collected: boolean;
+    offboarded: { at: string; cause: "term-ended" | "removed" | "left-sales" } | null;
+  } | null;
+  /** In sales (or given access by a founder), so they should have a CRM login. */
+  wantsCrm: boolean;
+  /** Where people sign in to the CRM — null while the connection is off. */
+  crmLoginUrl: string | null;
   stage: Stage;
   /** Resolved by the API — records predating the choice come back as both. */
   companies: Company[];
@@ -239,6 +252,17 @@ function CandidateRecord() {
             frozen={frozen}
             onReveal={() => act({ action: "reveal-workspace-password" })}
             onReset={() => act({ action: "reset-workspace-password" })}
+          />
+        )}
+
+        {(candidate.crm || (candidate.wantsCrm && candidate.crmLoginUrl && !frozen)) && (
+          <CrmCard
+            name={details?.fullName ?? candidate.invitedName}
+            crm={candidate.crm}
+            loginUrl={candidate.crmLoginUrl}
+            frozen={frozen}
+            onReveal={() => act({ action: "reveal-crm-password" })}
+            onReset={() => act({ action: "reset-crm-password" })}
           />
         )}
 
@@ -546,6 +570,7 @@ function CandidateRecord() {
             name={details?.fullName ?? candidate.invitedName}
             mailbox={candidate.mailbox?.address ?? null}
             workspaceLoginId={candidate.workspace?.loginId ?? null}
+            crmLoginId={candidate.crm && !candidate.crm.offboarded ? candidate.crm.loginId : null}
             onRemove={(leftOn, reason) => act({ action: "remove", leftOn, reason })}
           />
         )}
@@ -619,11 +644,13 @@ function RemoveIntern({
   name,
   mailbox,
   workspaceLoginId,
+  crmLoginId,
   onRemove,
 }: {
   name: string;
   mailbox: string | null;
   workspaceLoginId: string | null;
+  crmLoginId: string | null;
   onRemove: (leftOn: string, reason: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -671,6 +698,13 @@ function RemoveIntern({
             <Notice tone="warn">
               This also makes {name} ({workspaceLoginId}) a former employee in the Workspace straight away:
               signed out on every device, and their login stops working. Their history there is kept.
+            </Notice>
+          )}
+
+          {crmLoginId && (
+            <Notice tone="warn">
+              It also switches off their Sales CRM login ({crmLoginId}) and signs them out of the CRM
+              everywhere. Their open prospects are flagged to the founders for reassignment.
             </Notice>
           )}
 
@@ -1598,5 +1632,140 @@ function CertificatePreview({ text }: { text: CertificateText }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sales CRM login                                                            */
+/* -------------------------------------------------------------------------- */
+
+const CRM_ROLE_LABEL: Record<string, string> = {
+  sales_rep: "Sales team member",
+  sales_head: "Sales head",
+  legion: "Legion",
+};
+
+/**
+ * Their login to the Focus Realm Sales CRM — sales people only. Same rules as
+ * the Workspace card: the temporary password is shown once, here or on their
+ * own page, whoever opens it first.
+ */
+function CrmCard({
+  name,
+  crm,
+  loginUrl,
+  frozen,
+  onReveal,
+  onReset,
+}: {
+  name: string;
+  crm: AdminCandidate["crm"];
+  loginUrl: string | null;
+  frozen: boolean;
+  onReveal: () => Promise<{ password: string | null } | null>;
+  onReset: () => Promise<unknown>;
+}) {
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (!crm) {
+    return (
+      <Card>
+        <SectionTitle
+          title="Sales CRM login"
+          lead={`${name} is in sales but does not have a CRM login yet. It is created after their Workspace login, so both use the same employee ID — "Sync everyone", at the foot of the console, creates it.`}
+        />
+      </Card>
+    );
+  }
+
+  const off = crm.offboarded;
+  const status = off
+    ? `Switched off ${formatDateTime(off.at)}${
+        off.cause === "term-ended" ? ", after their last day" : off.cause === "removed" ? ", when removed" : ", when they left sales"
+      }. Signed out everywhere; their CRM history is kept and their open prospects are flagged to the founders for reassignment.`
+    : frozen
+      ? "They have been removed; the CRM confirms switching this login off on the next nightly run or sync."
+      : revealed
+        ? "Shown to you just now, and not again — here or on their page. Hand it to them in person, never by email or chat."
+        : !crm.collected
+          ? `Temporary password waiting to be collected — by you here, or by ${name} on their own page, whoever opens it first.`
+          : crm.viewedAt
+            ? `Temporary password collected ${formatDateTime(crm.viewedAt)}.`
+            : "No temporary password on record. Reset it to issue one.";
+
+  return (
+    <Card>
+      <SectionTitle
+        title="Sales CRM login"
+        lead={`${name} signs in to the Focus Realm Sales CRM with this employee ID and a temporary password, and chooses their own password the first time. Their email is not a login.`}
+      />
+
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <Detail label="Sign in with this employee ID" value={crm.loginId} />
+        <Detail label="Sign in at" value={loginUrl ?? "—"} />
+        <Detail label="CRM role" value={crm.crmRole ? (CRM_ROLE_LABEL[crm.crmRole] ?? crm.crmRole) : "—"} />
+        {revealed && <Detail label="Temporary password" value={revealed} />}
+      </dl>
+
+      <div className="mt-4">
+        {off ? <Notice tone="info">{status}</Notice> : (
+          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+            {status}
+          </p>
+        )}
+      </div>
+
+      {!frozen && !off && !resetting && (
+        <div className="mt-5 flex flex-wrap gap-3">
+          {!crm.collected && !revealed && (
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const data = await onReveal();
+                setBusy(false);
+                if (data?.password) setRevealed(data.password);
+              }}
+            >
+              <Eye className="size-4" aria-hidden />
+              {busy ? "Revealing…" : "Reveal temporary password"}
+            </Button>
+          )}
+          <Button variant="ghost" disabled={busy} onClick={() => setResetting(true)}>
+            <RotateCcw className="size-4" aria-hidden />
+            Reset CRM password
+          </Button>
+        </div>
+      )}
+
+      {!frozen && !off && resetting && (
+        <div className="mt-5 space-y-4">
+          <Notice tone="warn">
+            This signs {name} out of the CRM on every device and replaces their password with a new
+            temporary one, shown once like the first.
+          </Notice>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const done = await onReset();
+                setBusy(false);
+                setResetting(false);
+                if (done) setRevealed(null);
+              }}
+            >
+              {busy ? "Resetting…" : "Reset password"}
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setResetting(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

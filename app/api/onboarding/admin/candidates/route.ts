@@ -1,5 +1,5 @@
 import { error, isAdmin, json } from "@/lib/onboarding/api.server";
-import { createCandidate, listCandidates } from "@/lib/onboarding/store.server";
+import { createCandidate, getCandidate, listCandidates } from "@/lib/onboarding/store.server";
 import { agreementReady, companiesOf, currentStage, endDateOf, retentionOf } from "@/lib/onboarding/stage";
 import { ALL_COMPANIES, isCompany } from "@/lib/onboarding/content";
 import { maskAadhaar } from "@/lib/onboarding/security.server";
@@ -12,6 +12,7 @@ import {
 import { offboardingState } from "@/lib/onboarding/offboarding";
 import { describeWorkspaceFailure, linkWorkspaceAccount } from "@/lib/onboarding/workspace.server";
 import { othersSharingEmail } from "@/lib/onboarding/shared-email";
+import { crmConfigured, describeCrmFailure, linkCrmAccount, wantsCrm } from "@/lib/onboarding/crm.server";
 import {
   BUILT_IN_TRACKS,
   DEFAULT_TERM_MONTHS,
@@ -199,6 +200,26 @@ export async function POST(request: Request) {
   }
 
   /*
+   * People in the sales department — and only them — also get a Sales CRM login, after the Workspace one so it can
+   * reuse the same employee ID. Never blocks creating them either: if it fails,
+   * or the Workspace login is not there yet, the sync picks them up.
+   */
+  let crm: { loginId: string } | null = null;
+  let crmError: string | null = null;
+  if (wantsCrm(candidate)) {
+    try {
+      const fresh = (await getCandidate(candidate.id)) ?? candidate;
+      crm = await linkCrmAccount(fresh);
+    } catch (cause) {
+      console.error("CRM provisioning failed", cause);
+      crmError = describeCrmFailure(cause).message;
+    }
+    if (!crm && !crmError && crmConfigured()) {
+      crmError = "Their CRM login waits for their Workspace login, so both use the same employee ID.";
+    }
+  }
+
+  /*
    * A shared email is allowed — people are told apart by their record id, and
    * each gets their own Workspace login. The founders are only told who else
    * uses it.
@@ -206,5 +227,8 @@ export async function POST(request: Request) {
   const sharedWith = othersSharingEmail(candidate, await listCandidates().catch(() => []));
 
   // An existing employee's link opens their employee portal rather than onboarding.
-  return json({ id: candidate.id, token: candidate.token, workspace, workspaceError, sharedWith }, 201);
+  return json(
+    { id: candidate.id, token: candidate.token, workspace, workspaceError, crm, crmError, sharedWith },
+    201,
+  );
 }
