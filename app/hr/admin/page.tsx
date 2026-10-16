@@ -369,6 +369,7 @@ function AdminConsole() {
       )}
 
       {rows && <WorkspaceSync onSynced={load} />}
+      {rows && <CopyFilesToR2 />}
     </div>
   );
 }
@@ -962,6 +963,70 @@ function WorkspaceSync({ onSynced }: { onSynced: () => void }) {
               </ul>
             )}
           </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Moving older files to Cloudflare R2                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Copies the uploaded files from before the move (Aadhaar copies, agreements)
+ * from Supabase to R2, a batch per request, until none remain. Deletes nothing:
+ * empty the Supabase bucket by hand once the files open from R2.
+ */
+function CopyFilesToR2() {
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [failures, setFailures] = useState<{ name: string; error: string }[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setMessage(null);
+    setFailures([]);
+    let copied = 0;
+    for (;;) {
+      const response = await fetch("/api/onboarding/admin/storage/copy-to-r2", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(data.error ?? "Could not copy the files.");
+        break;
+      }
+      copied += data.copied;
+      setFailures(data.failed);
+      setProgress(
+        `${copied} copied this run · ${data.alreadyThere} already in R2 · ${data.remaining} left · ${data.failed.length} failed — of ${data.total} files`,
+      );
+      // Done, or a batch that moved nothing forward (only failures): stop.
+      if (data.remaining === 0 || data.copied === 0) break;
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Card className="mt-5">
+      <SectionTitle
+        title="Move older files to Cloudflare R2"
+        lead="New Aadhaar copies and agreements already go to R2. This copies the older ones across from Supabase, checks each one, and deletes nothing. Safe to run again — anything already copied is skipped."
+      />
+      <div className="space-y-4">
+        <Button disabled={busy} onClick={run}>
+          {busy ? "Copying…" : "Copy older files to R2"}
+        </Button>
+        {progress && <Notice tone={failures.length > 0 ? "warn" : "good"}>{progress}</Notice>}
+        {message && <Notice tone="bad">{message}</Notice>}
+        {failures.length > 0 && (
+          <ul className="space-y-1 text-xs" style={{ color: "var(--danger)" }}>
+            {failures.map((f) => (
+              <li key={f.name}>
+                {f.name}: {f.error}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </Card>
