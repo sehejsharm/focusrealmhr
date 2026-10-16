@@ -3,14 +3,18 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AgreementPlan, Candidate, Company, ExistingMember, Mailbox, TrackDefinition } from "./types";
 import { DEFAULT_TERM_MONTHS } from "./types";
 import { createId, createToken } from "./security.server";
+import { r2 } from "./r2.server";
 
 /**
  * Persistence for the onboarding module. SERVER ONLY.
  *
- * Records live in `public.onboarding_candidates`, Aadhaar copies in the private
- * `onboarding-aadhaar` bucket. Both have RLS enabled with no policies, so the
- * service-role key used here is the only thing that can reach them — never
- * expose it to the browser.
+ * Records live in `public.onboarding_candidates` on Supabase. Uploaded files —
+ * Aadhaar copies and bespoke agreements — live in a private Cloudflare R2
+ * bucket (r2.server.ts) once it is configured; until then, and for files from
+ * before the move, in the private Supabase `onboarding-aadhaar` bucket. The
+ * Supabase table and bucket have RLS enabled with no policies, so the
+ * service-role key used here is the only thing that can reach them. Neither
+ * that key nor the R2 keys may ever reach the browser.
  *
  * Nothing outside this file touches storage.
  */
@@ -167,14 +171,27 @@ export async function updateCandidate(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Aadhaar copies                                                             */
+/* Uploaded files: Aadhaar copies and agreements                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Stores an upload under a fresh random name: in R2 when it is configured,
+ * otherwise in the Supabase bucket. The name is the same kind either way, so a
+ * record never needs to know where its file lives.
+ */
 export async function saveUpload(
   file: File,
 ): Promise<{ storedAs: string; bytes: number }> {
   const storedAs = randomBytes(16).toString("hex");
   const bytes = Buffer.from(await file.arrayBuffer());
+
+  const bucket = r2();
+  if (bucket) {
+    await bucket.put(storedAs, bytes, file.type).catch((cause: Error) => {
+      throw new Error(`Could not store the upload: ${cause.message}`);
+    });
+    return { storedAs, bytes: bytes.byteLength };
+  }
 
   const { error } = await db()
     .storage.from(BUCKET)
@@ -188,6 +205,14 @@ export async function saveUpload(
 export async function readUpload(storedAs: string): Promise<Buffer | null> {
   // Stored names are always plain hex — anything else is not ours.
   if (!/^[a-f0-9]{32}$/.test(storedAs)) return null;
+
+  // R2 first. A file it does not have predates the move (or was stored before
+  // R2 was configured) and is still in the Supabase bucket.
+  const bucket = r2();
+  if (bucket) {
+    const found = await bucket.get(storedAs);
+    if (found) return found;
+  }
 
   const { data, error } = await db().storage.from(BUCKET).download(storedAs);
   if (error || !data) return null;
