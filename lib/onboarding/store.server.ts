@@ -219,3 +219,64 @@ export async function readUpload(storedAs: string): Promise<Buffer | null> {
 
   return Buffer.from(await data.arrayBuffer());
 }
+
+/**
+ * Copies files from the Supabase bucket to R2 under the same name, a batch at
+ * a time so each call fits in one serverless request. Skips anything already
+ * in R2 at the same size, checks every copy's size, and deletes nothing.
+ * `remaining` counts files still to look at after this batch.
+ */
+export async function copyUploadsToR2(
+  batch = 20,
+): Promise<{ total: number; copied: number; alreadyThere: number; remaining: number; failed: { name: string; error: string }[] }> {
+  const bucket = r2();
+  if (!bucket) throw new Error("R2 is not configured.");
+
+  const files: { name: string; size: number | null }[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db().storage.from(BUCKET).list("", { limit: 1000, offset });
+    if (error) throw new Error(`Could not list the Supabase bucket: ${error.message}`);
+    for (const o of data) {
+      if (!/^[a-f0-9]{32}$/.test(o.name)) continue;
+      const size = Number((o.metadata as { size?: number } | null)?.size);
+      files.push({ name: o.name, size: Number.isFinite(size) ? size : null });
+    }
+    if (data.length < 1000) break;
+  }
+
+  let copied = 0;
+  let alreadyThere = 0;
+  let worked = 0;
+  const failed: { name: string; error: string }[] = [];
+
+  for (const { name, size } of files) {
+    try {
+      // Already copied: compare sizes without downloading again.
+      if (size !== null && (await bucket.size(name)) === size) {
+        alreadyThere++;
+        continue;
+      }
+      if (worked >= batch) continue;
+
+      const { data, error } = await db().storage.from(BUCKET).download(name);
+      if (error || !data) throw new Error(error?.message ?? "download failed");
+      const bytes = Buffer.from(await data.arrayBuffer());
+
+      const existing = await bucket.size(name);
+      if (existing === bytes.byteLength) {
+        alreadyThere++;
+        continue;
+      }
+      worked++;
+      if (existing !== null) throw new Error(`already in R2 with a different size (${existing} vs ${bytes.byteLength})`);
+      await bucket.put(name, bytes, data.type);
+      if ((await bucket.size(name)) !== bytes.byteLength) throw new Error("size in R2 does not match after copying");
+      copied++;
+    } catch (cause) {
+      failed.push({ name, error: cause instanceof Error ? cause.message : String(cause) });
+    }
+  }
+
+  const remaining = Math.max(0, files.length - alreadyThere - copied - failed.length);
+  return { total: files.length, copied, alreadyThere, remaining, failed };
+}

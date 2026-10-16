@@ -16,6 +16,8 @@ export interface R2 {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
   /** Null when there is no such object. */
   get(key: string): Promise<Buffer | null>;
+  /** The stored size in bytes, or null when there is no such object. */
+  size(key: string): Promise<number | null>;
 }
 
 let cached: R2 | null | undefined;
@@ -43,6 +45,12 @@ export function r2(): R2 | null {
         headers: { "content-type": contentType || "application/octet-stream", "if-none-match": "*" },
       });
       if (!res.ok) throw new Error(`R2 refused the upload (${res.status}).`);
+    },
+    async size(key) {
+      const res = await client.fetch(url(key), { method: "HEAD" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`R2 could not check the file (${res.status}).`);
+      return Number(res.headers.get("content-length"));
     },
     async get(key) {
       const res = await client.fetch(url(key));
