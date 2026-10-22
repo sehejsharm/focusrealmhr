@@ -14,7 +14,7 @@ import { lastDayOf } from "./offboarding";
 import { seal, unseal } from "./security.server";
 import { listCandidates, updateCandidate } from "./store.server";
 import { trackOf, type Candidate, type CrmLogin } from "./types";
-import { lastDayOver, workspaceConfigured } from "./workspace.server";
+import { asSentence, lastDayOver, workspaceConfigured } from "./workspace.server";
 
 /**
  * The HR console's side of the Focus Realm Sales CRM connection. SERVER ONLY.
@@ -86,8 +86,16 @@ export function crmLoginUrl(): string | null {
 
 /** Same wording rules as describeWorkspaceFailure: "CRM rejected …" (4xx) / "CRM error …" (5xx). */
 export function describeCrmFailure(cause: unknown): { message: string; answered: boolean } {
+  if (cause instanceof Error && /^CRM error 503\b/.test(cause.message)) {
+    // The CRM's only 503 here: "HR integration is not configured on the CRM".
+    return {
+      message:
+        "The CRM is not accepting logins from this console yet (it answered 503): set HR_WEBHOOK_SECRET on the CRM to the same value as FOCUS_REALM_CRM_SECRET here, then redeploy the CRM.",
+      answered: true,
+    };
+  }
   if (cause instanceof Error && /^CRM (rejected|error)\b/.test(cause.message)) {
-    return { message: cause.message, answered: true };
+    return { message: asSentence(cause.message), answered: true };
   }
   return { message: "The CRM could not be reached.", answered: false };
 }
