@@ -164,10 +164,23 @@ export async function claimWorkspacePassword(id: string): Promise<string | null>
  * anything else is the network or a timeout. Never carries credentials.
  */
 export function describeWorkspaceFailure(cause: unknown): { message: string; answered: boolean } {
+  if (cause instanceof Error && /^Workspace error 503\b/.test(cause.message)) {
+    // The Workspace's only 503 here: its side of the connection is not set up.
+    return {
+      message:
+        "The Workspace is not accepting logins from this console yet (it answered 503): set HR_WEBHOOK_SECRET on the Workspace to the same value as FOCUS_REALM_WORKSPACE_SECRET here, then redeploy the Workspace.",
+      answered: true,
+    };
+  }
   if (cause instanceof Error && /^Workspace (rejected|error)\b/.test(cause.message)) {
-    return { message: cause.message, answered: true };
+    return { message: asSentence(cause.message), answered: true };
   }
   return { message: "The Workspace could not be reached.", answered: false };
+}
+
+/** The clients' errors are fragments ("Workspace error 500"); founders read them in a sentence. */
+export function asSentence(message: string): string {
+  return /[.!?]$/.test(message) ? message : `${message}.`;
 }
 
 /* -------------------------------------------------------------------------- */
