@@ -27,7 +27,7 @@ import {
   type Stage,
   type TrackDefinition,
 } from "@/lib/onboarding/types";
-import type { Company } from "@/lib/onboarding/types";
+import type { CertificateKind, Company } from "@/lib/onboarding/types";
 import { ALL_COMPANIES, COMPANIES, companyLabel } from "@/lib/onboarding/content";
 
 interface Row {
@@ -53,9 +53,10 @@ interface Row {
   contractVerifiedAt: string | null;
   emailRequestedAt: string | null;
   mailbox: string | null;
-  /** Completion certificate / recommendation letter drafted and awaiting approval. */
-  certificatesAwaiting: ("completion" | "recommendation")[];
-  certificatesIssued: ("completion" | "recommendation")[];
+  /** Certificate and letters drafted and awaiting approval. */
+  certificatesAwaiting: CertificateKind[];
+  certificatesIssued: CertificateKind[];
+  certificatesPlanned: number;
   /** Where they are in leaving — see lib/onboarding/offboarding.ts. */
   offboarding: "not-eligible" | "not-yet" | "link-ready" | "open" | "done";
   offboardedAt: string | null;
@@ -295,8 +296,8 @@ function AdminConsole() {
                           )}
                           {row.certificatesAwaiting.length > 0 && (
                             <Flag tone="gold" Icon={Award}>
-                              {row.certificatesAwaiting.length === 2
-                                ? "Approve certificates"
+                              {row.certificatesAwaiting.length > 1
+                                ? `Approve ${row.certificatesAwaiting.length} documents`
                                 : row.certificatesAwaiting[0] === "completion"
                                   ? "Approve certificate"
                                   : "Approve letter"}
@@ -320,7 +321,9 @@ function AdminConsole() {
                               className="inline-block rounded-md px-2 py-1 text-xs"
                               style={{ backgroundColor: "var(--success-soft)", color: "var(--success-soft-fg)" }}
                             >
-                              {row.certificatesIssued.length === 2 ? "Certificates issued" : "1 of 2 issued"}
+                              {row.certificatesIssued.length >= row.certificatesPlanned
+                                ? "Documents issued"
+                                : `${row.certificatesIssued.length} of ${row.certificatesPlanned} issued`}
                             </span>
                           )}
                         </div>

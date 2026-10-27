@@ -180,7 +180,13 @@ export interface ExistingMember {
 }
 
 /** The two end-of-internship documents. Each is approved on its own. */
-export type CertificateKind = "completion" | "recommendation";
+/**
+ * - completion: the framed certificate (A4 landscape).
+ * - completion-letter: a formal letter on the letterhead certifying the
+ *   internship, its role and length, with whom to contact to verify it.
+ * - recommendation: the letter of recommendation, on the letterhead.
+ */
+export type CertificateKind = "completion" | "completion-letter" | "recommendation";
 
 /**
  * Everything printed on an issued document, frozen at the moment a founder
@@ -200,10 +206,19 @@ export interface CertificateText {
   paragraphs: string[];
   /** The letter's salutation and sign-off; the certificate has neither. */
   salutation?: string;
+  /** A letter's subject line, without the "Subject:" label. */
+  subject?: string;
   closing?: string;
-  signatory: { name: string; designation: string; contactEmail?: string };
+  /** Who signed, and — on letters — how a referee or background check reaches them. */
+  signatory: { name: string; designation: string; contactEmail?: string; contactPhone?: string };
   issuedOn: string;
   serial: string;
+  /**
+   * Which wording it was drafted with. Absent on documents issued before the
+   * formal letterhead wording (2); those keep their text, and a founder can
+   * withdraw and reissue them to move them to the current wording.
+   */
+  template?: number;
 }
 
 export interface IssuedCertificate {

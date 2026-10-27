@@ -8,6 +8,7 @@ import {
   activeCertificate,
   certificateWindow,
   certificatesAwaitingApproval,
+  plannedCertificates,
 } from "@/lib/onboarding/certificates";
 import { offboardingState } from "@/lib/onboarding/offboarding";
 import { describeWorkspaceFailure, linkWorkspaceAccount } from "@/lib/onboarding/workspace.server";
@@ -60,6 +61,8 @@ export async function GET() {
       /** Documents drafted and waiting for a founder's approval. */
       certificatesAwaiting: certificatesAwaitingApproval(c),
       certificatesIssued: CERTIFICATE_KINDS.filter((kind) => activeCertificate(c, kind)),
+      /** How many documents this person is to receive — all three, unless a founder declined one. */
+      certificatesPlanned: plannedCertificates(c).length,
       offboarding: offboardingState(c).status,
       offboardedAt: c.offboarding?.submittedAt ?? null,
     })),

@@ -5,7 +5,7 @@ import { buildContract } from "@/lib/onboarding/contract";
 import { companiesOf, currentStage, retentionOf } from "@/lib/onboarding/stage";
 import { formatAadhaar, formatLongDate } from "@/lib/onboarding/contract";
 import { generatePassword, maskAadhaar, offboardingCode, seal } from "@/lib/onboarding/security.server";
-import { aadhaarLast4Of } from "@/lib/onboarding/types";
+import { aadhaarLast4Of, type CertificateKind } from "@/lib/onboarding/types";
 import {
   CERTIFICATE_LABEL,
   activeCertificate,
@@ -42,10 +42,16 @@ import {
 import { randomBytes } from "node:crypto";
 
 /** `FR-IC-2026-7K3QX9` — completion; `FR-LR-…` — recommendation letter. */
-function newSerial(kind: "completion" | "recommendation"): string {
+const SERIAL_PREFIX: Record<CertificateKind, string> = {
+  completion: "IC",
+  "completion-letter": "CL",
+  recommendation: "LR",
+};
+
+function newSerial(kind: CertificateKind): string {
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const code = Array.from(randomBytes(6), (b) => alphabet[b % alphabet.length]).join("");
-  return `FR-${kind === "completion" ? "IC" : "LR"}-${new Date().getUTCFullYear()}-${code}`;
+  return `FR-${SERIAL_PREFIX[kind]}-${new Date().getUTCFullYear()}-${code}`;
 }
 
 /** Full record, including the Aadhaar number. Admin session required. */
@@ -148,6 +154,7 @@ export async function POST(
     kind?: string;
     highlights?: string;
     contactEmail?: string;
+    contactPhone?: string;
   } | null;
 
   // A removed intern's record is frozen: restore them before acting on it.
@@ -313,9 +320,15 @@ export async function POST(
       if (highlights && highlights.length > 1200) {
         return error("Keep the founder's note under 1,200 characters.");
       }
-      const contactEmail = kind === "recommendation" ? body.contactEmail?.trim() || undefined : undefined;
+      // Both letters print how to reach the signatory; the framed certificate does not.
+      const isLetter = kind !== "completion";
+      const contactEmail = isLetter ? body.contactEmail?.trim() || undefined : undefined;
       if (contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail)) {
         return error("That contact email is not valid.");
+      }
+      const contactPhone = isLetter ? body.contactPhone?.trim() || undefined : undefined;
+      if (contactPhone && !/^\+?[0-9][0-9 ()-]{6,22}$/.test(contactPhone)) {
+        return error("That contact phone number is not valid.");
       }
 
       const issuedAt = new Date().toISOString();
@@ -326,7 +339,7 @@ export async function POST(
         // cannot issue the same document twice.
         if (activeCertificate(c, kind)) return c;
         const text = draftCertificate(c, kind, {
-          signatory: { name: typedName, designation, contactEmail },
+          signatory: { name: typedName, designation, contactEmail, contactPhone },
           highlights,
           issuedOn: issuedAt,
           serial,
