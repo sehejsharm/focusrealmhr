@@ -244,7 +244,7 @@ function Documents({ code, documents }: { code: string; documents: OffboardingDo
         lead={
           documents.length === 0
             ? "Your offboarding is complete. The founders have not set any documents for you here — reply to their message if you expected one."
-            : "Download and keep these. This link keeps working, so you can come back for them."
+            : "Download and keep these PDFs. This link keeps working, so you can come back for them."
         }
       />
 

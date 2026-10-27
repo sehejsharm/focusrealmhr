@@ -30,7 +30,7 @@ enforced server-side, not just hidden in the UI.
 /hr/[token]                     The candidate's whole onboarding
 /hr/admin                       Founders' console (passcode, asked on every visit)
 /hr/admin/[id]                  One candidate: documents and decisions
-/hr/offboarding/[code]          End-of-term certificates
+/hr/offboarding/[code]          End-of-term certificate and letters (PDF)
 /hr/privacy                     How candidate data is handled
 /api/onboarding/…               Everything above talks to these
 ```
@@ -47,6 +47,37 @@ npm run dev
 ```
 
 Open `/hr/admin`, create a candidate, and send them the generated link.
+
+## End-of-internship documents
+
+In the last ten days of a term the console drafts three documents from the
+record. Nothing is issued until a founder approves it — each one separately —
+and a founder can decide not to issue one.
+
+| Document | What it is |
+|---|---|
+| **Certificate of internship completion** | The framed certificate, A4 landscape |
+| **Internship completion letter** | On the letterhead: "This is to certify that…", the role, the dates and the length of the internship, and who to call or email to verify it or for a background check |
+| **Letter of recommendation** | On the letterhead, in formal wording, with the founder's own paragraph if they write one |
+
+- **The letterhead** is the founders' own (`content/onboarding/brand/focus-realm-letterhead.docx`):
+  logo, name, tagline, web, email and phone in the header, the Jaipur address
+  in the footer. `lib/onboarding/letterhead.ts` holds its details and colours.
+- **PDF only.** Every document downloads as an A4 PDF — founders from the
+  record, the intern from their offboarding page. There is no editable copy.
+- **Security watermark.** Behind the text on every page: the logo, large and
+  faint, and "FOCUS REALM · ORIGINAL · *reference number*" repeated on the
+  diagonal. A page lifted from one document, or an edited one, shows the wrong
+  reference underneath.
+- **Verification.** Both letters print the signing founder's phone and email
+  (the letterhead's by default; editable at approval) and the reference
+  number; the certificate prints how to verify it.
+- **The wording is frozen at approval.** Changing the layout re-renders every
+  document already issued — so anyone leaving now gets the letterhead and the
+  watermark — but never its approved text. A letter issued in the earlier
+  wording says so on its record; withdraw it and approve it again to reissue
+  it in the current formal wording. Someone already in their last ten days has
+  the new completion letter waiting for approval on their record.
 
 ## Handling of personal data
 

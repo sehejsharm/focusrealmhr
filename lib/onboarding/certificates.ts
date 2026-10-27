@@ -1,5 +1,6 @@
 import { companyLabel } from "./content";
-import { formatLongDate } from "./contract";
+import { formatLongDate, spellMonths } from "./contract";
+import { LETTERHEAD } from "./letterhead";
 import { companiesOf, endDateOf, hasPassed, requiredTestIds } from "./stage";
 import type {
   Candidate,
@@ -11,8 +12,9 @@ import type {
 import { DEFAULT_TERM_MONTHS, trackOf } from "./types";
 
 /**
- * End-of-internship documents: a certificate of completion and a letter of
- * recommendation.
+ * End-of-internship documents: the framed certificate of completion, a formal
+ * completion letter on the letterhead (what a background check asks for), and
+ * a letter of recommendation, also on the letterhead.
  *
  * Both are drafted automatically from the record once the intern is in the
  * last days of their term, but neither exists until a founder approves it —
@@ -28,20 +30,38 @@ import { DEFAULT_TERM_MONTHS, trackOf } from "./types";
 /** Documents can be prepared from this many days before the term ends. */
 export const CERTIFICATE_WINDOW_DAYS = 10;
 
-export const CERTIFICATE_KINDS: CertificateKind[] = ["completion", "recommendation"];
+export const CERTIFICATE_KINDS: CertificateKind[] = ["completion", "completion-letter", "recommendation"];
 
 export const CERTIFICATE_LABEL: Record<CertificateKind, string> = {
-  completion: "Internship completion certificate",
+  completion: "Certificate of internship completion",
+  "completion-letter": "Internship completion letter",
   recommendation: "Letter of recommendation",
 };
 
+/** "certificate" or "letter", for buttons and sentences. */
+export function documentNoun(kind: CertificateKind): string {
+  return kind === "completion" ? "certificate" : "letter";
+}
+
 const TITLE: Record<CertificateKind, string> = {
   completion: "Certificate of Internship Completion",
+  "completion-letter": "Internship Completion Letter",
   recommendation: "Letter of Recommendation",
 };
 
+/**
+ * The current wording. Documents drafted before it (no `template`) keep their
+ * frozen text; the console offers to withdraw and reissue them.
+ */
+export const CERTIFICATE_TEMPLATE = 2;
+
 export function isCertificateKind(value: unknown): value is CertificateKind {
-  return value === "completion" || value === "recommendation";
+  return value === "completion" || value === "completion-letter" || value === "recommendation";
+}
+
+/** Whether an issued document was drafted with an earlier wording than today's. */
+export function hasEarlierWording(text: CertificateText): boolean {
+  return (text.template ?? 1) < CERTIFICATE_TEMPLATE;
 }
 
 /** The day the documents can first be prepared: the start of the last ten days. */
@@ -122,8 +142,12 @@ function workedAcross(candidate: Candidate): string {
 }
 
 export interface DraftOptions {
-  signatory: { name: string; designation: string; contactEmail?: string };
-  /** Optional words from the founder, printed as their own paragraph of the letter. */
+  /**
+   * Who signs. On the letters, contactEmail and contactPhone are how a referee
+   * or a background check reaches them; left out, the letterhead's are used.
+   */
+  signatory: { name: string; designation: string; contactEmail?: string; contactPhone?: string };
+  /** Optional words from the founder, printed as their own paragraph of the recommendation. */
   highlights?: string;
   issuedOn: string;
   serial: string;
@@ -138,7 +162,7 @@ export function draftCertificate(
   const role = trackOf(candidate);
   const name = recipientName(candidate);
   const first = firstName(name);
-  const termMonths = candidate.termMonths || DEFAULT_TERM_MONTHS;
+  const months = spellMonths(candidate.termMonths || DEFAULT_TERM_MONTHS);
   const start = formatLongDate(new Date(candidate.startDate));
   const end = formatLongDate(new Date(endDateOf(candidate)));
   const across = workedAcross(candidate);
@@ -152,18 +176,43 @@ export function draftCertificate(
     organisations,
     startDate: candidate.startDate,
     endDate: endDateOf(candidate),
-    signatory: options.signatory,
     issuedOn: options.issuedOn,
     serial: options.serial,
+    template: CERTIFICATE_TEMPLATE,
   };
 
   if (kind === "completion") {
     return {
       ...base,
+      signatory: { name: options.signatory.name, designation: options.signatory.designation },
       paragraphs: [
-        `has successfully completed a ${termMonths}-month internship with Focus Realm as ${role.roleTitle}, from ${start} to ${end}.`,
+        `has successfully completed an internship of ${months} months with Focus Realm as ${role.roleTitle}, from ${start} to ${end}.`,
         `During the internship, ${first} worked on ${role.duties}${across}.`,
-        `We are grateful for ${first}'s contribution and wish ${first} every success in the future.`,
+        `We thank ${first} for the contribution made to Focus Realm and wish ${first} every success in the future.`,
+      ],
+    };
+  }
+
+  // Letters say how to reach the signatory: a referee writing back, or a
+  // background check verifying the letter.
+  const signatory = {
+    name: options.signatory.name,
+    designation: options.signatory.designation,
+    contactEmail: options.signatory.contactEmail?.trim() || LETTERHEAD.email,
+    contactPhone: options.signatory.contactPhone?.trim() || LETTERHEAD.phone,
+  };
+  const letter = { ...base, signatory, salutation: "To Whom It May Concern", closing: "Yours faithfully," };
+
+  if (kind === "completion-letter") {
+    return {
+      ...letter,
+      subject: `Completion of internship by ${name}`,
+      paragraphs: [
+        `This is to certify that ${name} has successfully completed an internship with Focus Realm as ${role.roleTitle}. The internship ran for ${months} months, from ${start} to ${end}${across}.`,
+        `During this period, ${first} was responsible for ${role.duties}.`,
+        `Throughout the internship, ${first}'s conduct was professional and in keeping with the standards expected at Focus Realm.`,
+        "This letter is issued upon the successful completion of the internship, for whatever purpose it may serve.",
+        `For verification of this letter, or for any background check, please contact ${signatory.name}, ${signatory.designation}, Focus Realm, at ${signatory.contactPhone} or ${signatory.contactEmail}, quoting reference number ${options.serial}.`,
       ],
     };
   }
@@ -172,38 +221,37 @@ export function draftCertificate(
   // existing employee never went through the console's programme.
   const passedProgramme =
     !candidate.existing && requiredTestIds(candidate).every((id) => hasPassed(candidate, id));
-
   const highlights = options.highlights?.trim();
-  const contact = options.signatory.contactEmail?.trim();
 
   return {
-    ...base,
-    salutation: "To whom it may concern,",
+    ...letter,
+    subject: `Letter of recommendation for ${name}`,
     paragraphs: [
-      `I am pleased to recommend ${name}, who completed a ${termMonths}-month internship with Focus Realm as ${role.roleTitle}, from ${start} to ${end}.`,
-      `In this role, ${first} worked on ${role.duties}${across}.${
+      `It is my pleasure to recommend ${name}, who completed an internship of ${months} months with Focus Realm as ${role.roleTitle}, from ${start} to ${end}${across}.`,
+      `During the internship, ${first} was responsible for ${role.duties}.${
         passedProgramme
-          ? ` Before starting, ${first} completed our structured onboarding programme and passed each of its assessments.`
+          ? ` Before taking up these responsibilities, ${first} completed our structured onboarding programme and passed each of its assessments.`
           : ""
       }`,
       ...(highlights ? [highlights] : []),
-      `Throughout the internship, ${first} brought professionalism and a real willingness to learn to the work. I am happy to recommend ${first} for future academic and professional opportunities.`,
-      contact
-        ? `Please feel free to contact me at ${contact} for any further information.`
-        : "Please feel free to contact Focus Realm for any further information.",
+      `Throughout the engagement, ${first} demonstrated professionalism, diligence and a genuine willingness to learn, and carried out the work with integrity. I recommend ${first} without reservation for further academic and professional opportunities, and I am confident that ${first} will be an asset to any organisation.`,
+      `Should you require any further information, please contact me at ${signatory.contactPhone} or ${signatory.contactEmail}. This letter may be verified with Focus Realm by quoting reference number ${options.serial}.`,
     ],
-    closing: "Sincerely,",
   };
 }
 
-/** `Internship-Completion-Certificate-Priya-Nair.pdf` */
+/** `Internship-Completion-Letter-Priya-Nair.pdf` */
 export function certificateFilename(kind: CertificateKind, fullName: string): string {
   const slug = fullName
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^A-Za-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-  const prefix = kind === "completion" ? "Internship-Completion-Certificate" : "Letter-of-Recommendation";
-  return `${prefix}-${slug || "Intern"}.pdf`;
+  const prefix: Record<CertificateKind, string> = {
+    completion: "Internship-Completion-Certificate",
+    "completion-letter": "Internship-Completion-Letter",
+    recommendation: "Letter-of-Recommendation",
+  };
+  return `${prefix[kind]}-${slug || "Intern"}.pdf`;
 }

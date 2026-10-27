@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Award, Check, Copy, Download, ExternalLink, Eye, FileWarning, LogOut, Mail, RotateCcw, Upload, UserMinus, X } from "lucide-react";
 import ContractDocument from "@/components/onboarding/ContractDocument";
@@ -34,8 +35,11 @@ import {
   CERTIFICATE_LABEL,
   CERTIFICATE_WINDOW_DAYS,
   activeCertificate,
+  documentNoun,
   draftCertificate,
+  hasEarlierWording,
 } from "@/lib/onboarding/certificates";
+import { LETTERHEAD } from "@/lib/onboarding/letterhead";
 import { formatLongDate } from "@/lib/onboarding/contract";
 import type { CertificateKind, CertificateText, CertificateWindow } from "@/lib/onboarding/types";
 import { EXIT_QUESTIONS, OFFBOARDING_LINK_DAYS_BEFORE_END, type OffboardingState } from "@/lib/onboarding/offboarding";
@@ -1249,6 +1253,7 @@ type IssueFields = {
   designation: string;
   highlights?: string;
   contactEmail?: string;
+  contactPhone?: string;
 };
 
 function Certificates({
@@ -1275,8 +1280,8 @@ function Certificates({
   return (
     <Card>
       <SectionTitle
-        title="Completion certificate and recommendation letter"
-        lead={`Drafted automatically from this record in the last ${CERTIFICATE_WINDOW_DAYS} days of the term. Nothing is issued until a founder approves it — each document separately — and you can decide not to issue one. The intern downloads what you approve at the end of offboarding.`}
+        title="Certificate and letters"
+        lead={`A framed certificate of completion, a completion letter for background checks, and a letter of recommendation — the letters on the Focus Realm letterhead, all A4 PDFs with a security watermark. Drafted from this record in the last ${CERTIFICATE_WINDOW_DAYS} days of the term; nothing is issued until a founder approves it, each document separately, and you can decide not to issue one. The intern downloads what you approve at the end of offboarding.`}
       />
 
       {timing.status === "not-eligible" && !anyIssued && <Notice>{timing.reason}</Notice>}
@@ -1351,9 +1356,11 @@ function CertificatePanel({
   const name = candidate.details?.fullName ?? candidate.invitedName;
 
   const [typedName, setTypedName] = useState("");
-  const [designation, setDesignation] = useState("Co-founder");
+  const [designation, setDesignation] = useState("Co-Founder");
   const [highlights, setHighlights] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactEmail, setContactEmail] = useState<string>(LETTERHEAD.email);
+  const [contactPhone, setContactPhone] = useState<string>(LETTERHEAD.phone);
+  const isLetter = kind !== "completion";
   const [approved, setApproved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -1376,6 +1383,13 @@ function CertificatePanel({
           {formatDateTime(issued.issuedAt)} · {issued.serial}. {name} downloads it at the end of
           offboarding.
         </Notice>
+        {isLetter && hasEarlierWording(issued.text) && (
+          <Notice tone="warn">
+            Issued with the earlier wording. It now prints on the letterhead, but its text is what
+            was approved then. To issue it in the current formal wording, withdraw it and approve it
+            again.
+          </Notice>
+        )}
         <div className="flex flex-wrap gap-3">
           <a
             href={`/api/onboarding/admin/candidates/${id}/certificates/${kind}/pdf`}
@@ -1418,7 +1432,7 @@ function CertificatePanel({
                   setReason("");
                 }}
               >
-                Withdraw {kind === "completion" ? "certificate" : "letter"}
+                Withdraw {documentNoun(kind)}
               </Button>
               <Button variant="ghost" onClick={() => setWithdrawing(false)}>
                 Cancel
@@ -1468,10 +1482,11 @@ function CertificatePanel({
       name: typedName.trim() || "Founder's name",
       designation: designation.trim() || "Designation",
       contactEmail: contactEmail.trim() || undefined,
+      contactPhone: contactPhone.trim() || undefined,
     },
     highlights,
     issuedOn: new Date().toISOString(),
-    serial: "assigned on approval",
+    serial: "(assigned on approval)",
   });
 
   const ready = typedName.trim() && designation.trim() && approved && !busy;
@@ -1486,21 +1501,36 @@ function CertificatePanel({
       <CertificatePreview text={preview} />
 
       {kind === "recommendation" && (
-        <div className="grid gap-4">
+        <Field
+          label="A few words of your own"
+          hint="Optional, but it is what makes a recommendation worth reading: something specific they did well. Printed as its own paragraph."
+        >
+          <textarea
+            value={highlights}
+            onChange={(e) => setHighlights(e.target.value)}
+            rows={3}
+            maxLength={1200}
+            className={`${inputClass} resize-y`}
+            style={inputStyle}
+          />
+        </Field>
+      )}
+
+      {isLetter && (
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="A few words of your own"
-            hint="Optional, but it is what makes a recommendation worth reading: something specific they did well. Printed as its own paragraph."
+            label="Phone for verification"
+            hint="Printed in the letter, for referees and background checks to reach the signing founder."
           >
-            <textarea
-              value={highlights}
-              onChange={(e) => setHighlights(e.target.value)}
-              rows={3}
-              maxLength={1200}
-              className={`${inputClass} resize-y`}
+            <input
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              type="tel"
+              className={inputClass}
               style={inputStyle}
             />
           </Field>
-          <Field label="Contact email for referees" hint="Optional. Printed so a future employer can reach you.">
+          <Field label="Email for verification" hint="Printed next to the phone number.">
             <input
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
@@ -1540,8 +1570,8 @@ function CertificatePanel({
           className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
         />
         <span>
-          I have read this {kind === "completion" ? "certificate" : "letter"} and approve issuing it
-          to {name} on behalf of Focus Realm.
+          I have read this {documentNoun(kind)} and approve issuing it to {name} on behalf of Focus
+          Realm.
         </span>
       </label>
 
@@ -1553,13 +1583,14 @@ function CertificatePanel({
             typedName: typedName.trim(),
             designation: designation.trim(),
             highlights: kind === "recommendation" ? highlights.trim() || undefined : undefined,
-            contactEmail: kind === "recommendation" ? contactEmail.trim() || undefined : undefined,
+            contactEmail: isLetter ? contactEmail.trim() || undefined : undefined,
+            contactPhone: isLetter ? contactPhone.trim() || undefined : undefined,
           });
           setBusy(false);
         }}
       >
         <Check className="size-4" aria-hidden />
-        {busy ? "Issuing…" : `Approve and issue ${kind === "completion" ? "certificate" : "letter"}`}
+        {busy ? "Issuing…" : `Approve and issue ${documentNoun(kind)}`}
       </Button>
       <Button
         variant="ghost"
@@ -1581,24 +1612,30 @@ function CertificatePanel({
 /** A paper-like rendering of the draft, so founders approve what will be printed. */
 function CertificatePreview({ text }: { text: CertificateText }) {
   const issued = formatLongDate(new Date(text.issuedOn));
+  const sans = { fontFamily: "Arial, Helvetica, sans-serif" } as const;
+  const serif = { fontFamily: "Georgia, 'Times New Roman', serif" } as const;
 
-  return (
-    <div
-      className="max-h-96 overflow-y-auto rounded-lg p-5 text-sm leading-relaxed sm:p-6"
-      style={{ backgroundColor: "var(--paper)", color: "var(--paper-ink)", fontFamily: "Georgia, 'Times New Roman', serif" }}
-    >
-      {text.kind === "completion" ? (
-        <div className="text-center">
-          <p className="text-[10px] font-bold tracking-[0.3em]" style={{ color: "var(--paper-accent)", fontFamily: "var(--font-geist-sans), sans-serif" }}>
+  if (text.kind === "completion") {
+    return (
+      <div
+        className="max-h-[28rem] overflow-y-auto rounded-lg p-2 text-sm leading-relaxed"
+        style={{ backgroundColor: "var(--paper)", color: "var(--paper-ink)" }}
+      >
+        <div className="rounded-md border-4 border-double p-5 text-center sm:p-7" style={{ borderColor: "#024AAC", ...serif }}>
+          <Image src="/focus-realm-logo.png" alt="Focus Realm" width={28} height={40} className="mx-auto" />
+          <p className="mt-2 text-[10px] font-bold tracking-[0.3em]" style={{ color: "#0B1F3A", ...sans }}>
             FOCUS REALM
           </p>
-          <p className="mt-2 text-xl font-bold" style={{ color: "var(--paper-heading)" }}>
+          <p className="text-[8px] tracking-[0.2em]" style={{ color: "#024AAC", ...sans }}>
+            {LETTERHEAD.tagline}
+          </p>
+          <p className="mt-3 text-xl font-bold" style={{ color: "#0B1F3A" }}>
             {text.title}
           </p>
           <p className="mt-2 italic" style={{ color: "var(--paper-muted)" }}>
             This is to certify that
           </p>
-          <p className="mt-1 text-2xl font-bold" style={{ color: "var(--paper-heading)" }}>
+          <p className="mt-1 text-2xl font-bold" style={{ color: "#0B1F3A" }}>
             {text.recipientName}
           </p>
           {text.paragraphs.map((p, i) => (
@@ -1606,31 +1643,91 @@ function CertificatePreview({ text }: { text: CertificateText }) {
               {p}
             </p>
           ))}
-          <p className="mt-4 text-xs" style={{ color: "var(--paper-muted)" }}>
+          <p className="mt-4 text-xs" style={{ color: "var(--paper-muted)", ...sans }}>
             {text.signatory.name}, {text.signatory.designation} · Date of issue {issued} · No.{" "}
             {text.serial}
           </p>
         </div>
-      ) : (
-        <div>
-          <p className="text-xs" style={{ color: "var(--paper-muted)" }}>
-            {issued} · Ref. {text.serial}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="max-h-[28rem] overflow-y-auto rounded-lg p-5 text-[13px] leading-relaxed sm:p-7"
+      style={{ backgroundColor: "var(--paper)", color: "#1F2937", ...sans }}
+    >
+      {/* The letterhead. */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <Image src="/focus-realm-logo.png" alt="" width={20} height={28} />
+          <div>
+            <p className="text-base leading-tight font-bold" style={{ color: "#0B1F3A" }}>
+              {LETTERHEAD.name}
+            </p>
+            <p className="text-[7px] tracking-[0.18em]" style={{ color: "#024AAC" }}>
+              {LETTERHEAD.tagline}
+            </p>
+          </div>
+        </div>
+        <div className="text-right text-[9px] leading-snug" style={{ color: "#5B6675" }}>
+          <p>{LETTERHEAD.web}</p>
+          <p>{LETTERHEAD.email}</p>
+          <p>{LETTERHEAD.phone}</p>
+        </div>
+      </div>
+      <div className="mt-2 h-px" style={{ backgroundColor: "#024AAC" }} />
+      <div className="mt-0.5 h-[3px] w-14" style={{ backgroundColor: "#53BAFA" }} />
+
+      <div className="mt-5 flex justify-between gap-3 text-xs">
+        <span>{issued}</span>
+        <span style={{ color: "#5B6675" }}>Ref. No.: {text.serial}</span>
+      </div>
+      {text.subject ? (
+        <>
+          <p className="mt-4 text-center font-bold underline" style={{ color: "#0B1F3A" }}>
+            {(text.salutation ?? "To Whom It May Concern").toUpperCase()}
           </p>
-          <p className="mt-2 text-lg font-bold" style={{ color: "var(--paper-heading)" }}>
+          <p className="mt-3 font-bold" style={{ color: "#0B1F3A" }}>
+            Subject: {text.subject}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 text-base font-bold" style={{ color: "#0B1F3A" }}>
             {text.title}
           </p>
           {text.salutation && <p className="mt-3">{text.salutation}</p>}
-          {text.paragraphs.map((p, i) => (
-            <p key={i} className="mt-3 whitespace-pre-line">
-              {p}
-            </p>
-          ))}
-          {text.closing && <p className="mt-4">{text.closing}</p>}
-          <p className="mt-2 font-bold">{text.signatory.name}</p>
-          <p>{text.signatory.designation}, Focus Realm</p>
-          {text.signatory.contactEmail && <p style={{ color: "var(--paper-muted)" }}>{text.signatory.contactEmail}</p>}
-        </div>
+        </>
       )}
+      {text.paragraphs.map((p, i) => (
+        <p key={i} className="mt-3 text-justify whitespace-pre-line">
+          {p}
+        </p>
+      ))}
+      {text.closing && <p className="mt-4">{text.closing}</p>}
+      <p className="font-bold" style={{ color: "#0B1F3A" }}>
+        For Focus Realm
+      </p>
+      <p className="mt-3 text-xl italic" style={{ color: "#0B1F3A", ...serif }}>
+        {text.signatory.name}
+      </p>
+      <p className="font-bold" style={{ color: "#0B1F3A" }}>
+        {text.signatory.name}
+      </p>
+      <p style={{ color: "#5B6675" }}>{text.signatory.designation}, Focus Realm</p>
+      {(text.signatory.contactPhone || text.signatory.contactEmail) && (
+        <p style={{ color: "#5B6675" }}>
+          {[text.signatory.contactPhone, text.signatory.contactEmail].filter(Boolean).join(" · ")}
+        </p>
+      )}
+
+      <div className="mt-6 border-t pt-2 text-center text-[9px]" style={{ borderColor: "#53BAFA", color: "#5B6675" }}>
+        <span className="font-bold" style={{ color: "#0B1F3A" }}>
+          {LETTERHEAD.name}
+        </span>{" "}
+        | {LETTERHEAD.address} | {LETTERHEAD.web} | {LETTERHEAD.email}
+      </div>
     </div>
   );
 }
