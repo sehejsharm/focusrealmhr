@@ -310,6 +310,36 @@ or later, the first to name the CRM — phone (`consentCoversCrm`). Never the
 Aadhaar number or copy, the address, the parent's name, the agreement or
 assessment results.
 
+## One website
+
+The Workspace, this console and the Sales CRM are one website at the
+Workspace's address. Everyone signs in to the Workspace; its app switcher
+takes founders to the HR console and founders and sales people to the CRM.
+Each app keeps its own code, deployment and storage.
+
+How this app takes part (`lib/onboarding/hub.server.ts`, `proxy.ts`):
+
+- The Workspace routes `/hr`, `/hr/*`, `/hr-static/*`, `/api/onboarding/*` to
+  this app's production URL, adding the header `x-focusrealm-hub:
+  <FOCUS_REALM_HUB_SECRET>`. Invitation and offboarding links keep their
+  `/hr/...` paths, now on the website's address.
+- Opening the console from the switcher goes to the Workspace's `/launch/hr`,
+  which (founders only) redirects to `/hr/admin?launch=<ticket>`. The ticket is
+  `base64url(JSON) + "." + base64url(HMAC-SHA256(secret, first part))`, payload
+  `{ v: 1, app: "hr", sub: "FR-0001", name, role: "FOUNDER", iat, exp }`,
+  at most 120 seconds. The console swaps it for its own two-hour session and
+  removes it from the address. The passcode still works as a fallback.
+- Any request to this app's own Vercel address without that header is
+  redirected (308) to the same path on the website. The nightly cron is exempt.
+- Scripts and styles are served under `/hr-static` so they never collide with
+  the Workspace's.
+
+**Order matters.** Deploy the Workspace's routing first and check
+`<website>/hr` loads. Only then set `FOCUS_REALM_HUB_URL` and
+`FOCUS_REALM_HUB_SECRET` here and redeploy — set too early, the redirect sends
+people to a website that doesn't serve `/hr` yet. To undo, remove the two
+variables and redeploy.
+
 ## Deploying to Vercel
 
 1. Import the repo — Next.js is detected, no build settings needed.
