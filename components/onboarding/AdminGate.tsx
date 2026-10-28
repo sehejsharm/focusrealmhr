@@ -104,10 +104,31 @@ export default function AdminGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (current !== "locked" || sessionCleared) return;
     let live = true;
+    // Opened from the Workspace's app switcher: a one-off launch ticket in the
+    // address stands in for the passcode. Taken out of the address at once,
+    // so it is never bookmarked, shared or reused by Back.
+    const url = new URL(window.location.href);
+    const ticket = url.searchParams.get("launch");
+    if (ticket) {
+      url.searchParams.delete("launch");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
     ending.current = endSessionAfter(ending.current);
-    ending.current.then(() => {
-      if (live) setSessionCleared(true);
-    });
+    ending.current
+      .then(() =>
+        ticket
+          ? fetch("/api/onboarding/admin/sso", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ ticket }),
+            }).catch(() => null)
+          : null,
+      )
+      .then((response) => {
+        if (!live) return;
+        if (response?.ok) setStatus("open");
+        else setSessionCleared(true);
+      });
     return () => {
       live = false;
     };
@@ -193,6 +214,15 @@ function PasscodeGate({
   const [passcode, setPasscode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // On the single website, founders open the console from the Workspace instead.
+  const [hub, setHub] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/onboarding/admin/sso")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setHub(Boolean(data?.hub)))
+      .catch(() => {});
+  }, []);
 
   async function submit() {
     setBusy(true);
@@ -229,6 +259,20 @@ function PasscodeGate({
           }
         />
         <div className="space-y-4">
+          {hub && (
+            <>
+              <a
+                href="/launch/hr"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-bold"
+                style={{ backgroundColor: "var(--brand)", color: "var(--brand-fg)" }}
+              >
+                Sign in with the Workspace
+              </a>
+              <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+                Founders only. Or use the shared passcode:
+              </p>
+            </>
+          )}
           <Field label="Passcode">
             <input
               type="password"
@@ -248,5 +292,39 @@ function PasscodeGate({
         </div>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Moves between the three apps on the single Focus Realm website. Founders can
+ * use all three, so both links show. Plain <a>: each app is a separate site
+ * behind the same address, so it is a full page load (see next.config.ts).
+ * Shows nothing until the console sits behind that website.
+ */
+export function AppSwitcher() {
+  const [hub, setHub] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/onboarding/admin/sso")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setHub(Boolean(data?.hub)))
+      .catch(() => {});
+  }, []);
+
+  if (!hub) return null;
+  const link = "inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-bold";
+  return (
+    <nav aria-label="Focus Realm apps" className="flex items-center gap-1">
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- "/" is the Workspace, another app on this address */}
+      <a href="/" className={link} style={{ border: "1px solid var(--line)" }}>
+        Workspace
+      </a>
+      <span className={link} style={{ backgroundColor: "var(--brand-soft)", color: "var(--brand-soft-fg)" }} aria-current="page">
+        HR console
+      </span>
+      <a href="/crm" className={link} style={{ border: "1px solid var(--line)" }}>
+        Sales CRM
+      </a>
+    </nav>
   );
 }

@@ -15,7 +15,7 @@ import {
   inputClass,
   inputStyle,
 } from "@/components/onboarding/ui";
-import AdminGate, { LockButton, adminFetch } from "@/components/onboarding/AdminGate";
+import AdminGate, { AppSwitcher, LockButton, adminFetch } from "@/components/onboarding/AdminGate";
 import {
   BUILT_IN_TRACKS,
   DEFAULT_TERM_MONTHS,
@@ -134,6 +134,7 @@ function AdminConsole() {
         <Wordmark subtitle="HR console" href="/hr/admin" />
         <div className="flex flex-wrap items-center gap-2">
           <ThemeToggle />
+          <AppSwitcher />
           <LockButton />
           <Button variant="ghost" onClick={load}>
             <RefreshCw className="size-4" aria-hidden />

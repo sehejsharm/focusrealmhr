@@ -19,7 +19,7 @@ import {
   inputClass,
   inputStyle,
 } from "@/components/onboarding/ui";
-import AdminGate, { LockButton, adminFetch } from "@/components/onboarding/AdminGate";
+import AdminGate, { AppSwitcher, LockButton, adminFetch } from "@/components/onboarding/AdminGate";
 import type { Contract } from "@/lib/onboarding/contract";
 import {
   DEFAULT_TERM_MONTHS,
@@ -203,6 +203,7 @@ function CandidateRecord() {
           Everyone
         </Link>
         <ThemeToggle />
+        <AppSwitcher />
         <LockButton />
         </div>
       </div>
