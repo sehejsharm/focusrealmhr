@@ -515,6 +515,21 @@ function CandidateRecord() {
           </>
         )}
 
+        {!candidate.existing && (
+          <AgreementEditor
+            candidate={candidate}
+            frozen={frozen}
+            act={act}
+            onConvert={async () => {
+              const response = await adminFetch(`/api/onboarding/admin/candidates/${id}/agreement/convert`, { method: "POST" });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) return { error: (data.error as string) ?? "Could not convert the document." };
+              await load();
+              return { warnings: (data.warnings as string[]) ?? [] };
+            }}
+          />
+        )}
+
         {candidate.contractVerifiedAt && (
           <Card>
             <SectionTitle
@@ -1865,5 +1880,265 @@ function CrmCard({
         </div>
       )}
     </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Agreement: dates, wording, the intern's suggestions                        */
+/* -------------------------------------------------------------------------- */
+
+type ActFn = (payload: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+
+/**
+ * Everything a founder can change about one intern's agreement. Before
+ * signing, changes simply show in the intern's portal. After signing, saving
+ * voids the signature (kept in the record with the exact text it covered) and
+ * the intern signs the new version — a signature never covers words it didn't see.
+ */
+function AgreementEditor({
+  candidate,
+  frozen,
+  act,
+  onConvert,
+}: {
+  candidate: AdminCandidate;
+  frozen: boolean;
+  act: ActFn;
+  onConvert: () => Promise<{ error?: string; warnings?: string[] }>;
+}) {
+  const signed = Boolean(candidate.signature);
+  const bespokeDoc = candidate.agreement?.kind === "bespoke" ? candidate.agreement.document : undefined;
+  const [startDate, setStartDate] = useState(candidate.startDate.slice(0, 10));
+  const [termMonths, setTermMonths] = useState(String(candidate.termMonths ?? DEFAULT_TERM_MONTHS));
+  const [reason, setReason] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [recitals, setRecitals] = useState<string[]>([]);
+  const [clauses, setClauses] = useState<{ heading: string; body: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [convertResult, setConvertResult] = useState<{ error?: string; warnings?: string[] } | null>(null);
+
+  const suggestions = candidate.contractSuggestions ?? [];
+  const imported = candidate.contractEdits?.importedFrom;
+  const signedWarning = signed && (
+    <Notice tone="warn">
+      {candidate.signature?.typedName ?? "The intern"} has signed this agreement
+      {candidate.companySignature ? " and it is countersigned" : ""}. Saving a change voids those signatures —
+      they stay in the record with the exact text they covered — and the intern is asked to sign the new version.
+    </Notice>
+  );
+
+  function startEditing() {
+    setRecitals(candidate.contract?.recitals ?? []);
+    setClauses(candidate.contract?.clauses.map((c) => ({ heading: c.heading, body: c.body })) ?? []);
+    setEditing(true);
+  }
+
+  async function run(payload: Record<string, unknown>) {
+    setBusy(true);
+    const done = await act(payload);
+    setBusy(false);
+    return done;
+  }
+
+  return (
+    <Card>
+      <SectionTitle
+        title="Agreement"
+        lead="Change the dates or the wording for this intern, before or after they sign, and answer the changes they suggest."
+      />
+
+      <div className="space-y-6">
+        {/* Dates */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">Start date and term</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Start date">
+              <input type="date" value={startDate} disabled={frozen} onChange={(e) => setStartDate(e.target.value)} className={inputClass} style={inputStyle} />
+            </Field>
+            <Field label="Term (months)">
+              <input type="number" min={1} max={24} value={termMonths} disabled={frozen} onChange={(e) => setTermMonths(e.target.value)} className={inputClass} style={inputStyle} />
+            </Field>
+          </div>
+          {!frozen && (
+            <Button
+              variant="ghost"
+              disabled={busy || (startDate === candidate.startDate.slice(0, 10) && Number(termMonths) === (candidate.termMonths ?? DEFAULT_TERM_MONTHS))}
+              onClick={() => run({ action: "edit-dates", startDate, termMonths: Number(termMonths), reason: reason || undefined })}
+            >
+              {busy ? "Saving…" : signed ? "Save dates (intern signs again)" : "Save dates"}
+            </Button>
+          )}
+        </div>
+
+        {/* Suggestions */}
+        {suggestions.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold">
+              Changes the intern suggested ({suggestions.filter((x) => x.status === "open").length} waiting)
+            </h3>
+            <ul className="space-y-3">
+              {suggestions.map((sg) => (
+                <SuggestionRow key={sg.id} suggestion={sg} frozen={frozen} onAnswer={(status, reply) => run({ action: "resolve-suggestion", suggestionId: sg.id, status, reply })} />
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Uploaded document → editable agreement */}
+        {bespokeDoc && !signed && !frozen && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold">Uploaded agreement</h3>
+            <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+              {bespokeDoc.originalName}. Convert it into the console&apos;s own agreement: the parties, dates and
+              signatures come from the record, Aadhaar numbers are masked, the term clause is written from the
+              start date and term, and anything missing is flagged. You review and edit the result before the
+              intern sees it.
+            </p>
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setConvertResult(await onConvert());
+                setBusy(false);
+              }}
+            >
+              {busy ? "Converting…" : "Convert to editable agreement"}
+            </Button>
+            {convertResult?.error && <Notice tone="bad">{convertResult.error}</Notice>}
+          </div>
+        )}
+
+        {imported && (
+          <Notice tone="info">
+            Converted from {imported.originalName} on {formatDateTime(imported.importedAt)}. Check before the intern signs:
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {imported.warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          </Notice>
+        )}
+
+        {/* Wording */}
+        {candidate.contract && !frozen && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold">
+              Wording {candidate.contractEdits ? "(edited for this intern)" : "(standard template)"}
+            </h3>
+            {!editing ? (
+              <div className="flex flex-wrap gap-3">
+                <Button variant="ghost" onClick={startEditing}>Edit agreement</Button>
+                {candidate.contractEdits && (
+                  <Button variant="ghost" disabled={busy} onClick={() => run({ action: "reset-contract", reason: reason || undefined })}>
+                    Go back to the standard template
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {signedWarning}
+                <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>Recitals</p>
+                {recitals.map((r, i) => (
+                  <div key={`r${i}`} className="flex gap-2">
+                    <textarea value={r} rows={2} onChange={(e) => setRecitals(recitals.map((x, j) => (j === i ? e.target.value : x)))} className={inputClass} style={inputStyle} />
+                    <Button variant="ghost" onClick={() => setRecitals(recitals.filter((_, j) => j !== i))} aria-label="Remove recital"><X className="size-4" aria-hidden /></Button>
+                  </div>
+                ))}
+                <Button variant="ghost" onClick={() => setRecitals([...recitals, ""])}>Add recital</Button>
+
+                <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>Clauses</p>
+                {clauses.map((c, i) => (
+                  <div key={`c${i}`} className="space-y-2 rounded-xl border p-3" style={{ borderColor: "var(--line)" }}>
+                    <div className="flex gap-2">
+                      <input value={c.heading} onChange={(e) => setClauses(clauses.map((x, j) => (j === i ? { ...x, heading: e.target.value } : x)))} className={inputClass} style={inputStyle} />
+                      <Button variant="ghost" onClick={() => setClauses(clauses.filter((_, j) => j !== i))} aria-label="Remove clause"><X className="size-4" aria-hidden /></Button>
+                    </div>
+                    <textarea value={c.body} rows={5} onChange={(e) => setClauses(clauses.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))} className={inputClass} style={inputStyle} />
+                  </div>
+                ))}
+                <Button variant="ghost" onClick={() => setClauses([...clauses, { heading: `${clauses.length + 1}. `, body: "" }])}>Add clause</Button>
+
+                <Field label="What changed (the intern sees this)" hint="Optional.">
+                  <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} className={inputClass} style={inputStyle} placeholder="e.g. Updated working hours as you asked" />
+                </Field>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    disabled={busy}
+                    onClick={async () => {
+                      const done = await run({ action: "edit-contract", recitals, clauses, reason: reason || undefined });
+                      if (done) setEditing(false);
+                    }}
+                  >
+                    {busy ? "Saving…" : signed ? "Save — intern signs again" : "Save agreement"}
+                  </Button>
+                  <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {!candidate.contract && !bespokeDoc && (
+          <p className="text-sm" style={{ color: "var(--fg-muted)" }}>
+            The wording can be edited once the intern has submitted their details.
+          </p>
+        )}
+
+        {(candidate.supersededSignatures?.length ?? 0) > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold">Earlier signed versions</h3>
+            <ul className="space-y-2 text-sm">
+              {candidate.supersededSignatures!.map((v) => (
+                <li key={v.supersededAt}>
+                  <details>
+                    <summary className="cursor-pointer">
+                      Signed by {v.signature.typedName} on {formatDateTime(v.signature.signedAt)} — replaced{" "}
+                      {formatDateTime(v.supersededAt)}: {v.reason}
+                    </summary>
+                    <pre className="mt-2 max-h-80 overflow-auto rounded-lg p-3 text-xs whitespace-pre-wrap" style={{ backgroundColor: "var(--surface-sunken)" }}>
+                      {v.signature.contractSnapshot}
+                    </pre>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function SuggestionRow({
+  suggestion,
+  frozen,
+  onAnswer,
+}: {
+  suggestion: NonNullable<AdminCandidate["contractSuggestions"]>[number];
+  frozen: boolean;
+  onAnswer: (status: "accepted" | "declined" | "open", reply: string) => Promise<unknown>;
+}) {
+  const [reply, setReply] = useState(suggestion.reply ?? "");
+  const label = { open: "Waiting", accepted: "Accepted", declined: "Declined" }[suggestion.status];
+  return (
+    <li className="space-y-2 rounded-xl border p-3 text-sm" style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}>
+      <span className="block text-xs font-bold" style={{ color: "var(--fg-muted)" }}>
+        {suggestion.clause ?? "The whole agreement"} · {formatDateTime(suggestion.at)} · {label}
+      </span>
+      <span className="block whitespace-pre-wrap">{suggestion.text}</span>
+      {!frozen && (
+        <>
+          <input value={reply} onChange={(e) => setReply(e.target.value)} maxLength={2000} placeholder="Reply to the intern (optional)" className={inputClass} style={inputStyle} />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => onAnswer("accepted", reply)}><Check className="size-4" aria-hidden />Accept</Button>
+            <Button variant="ghost" onClick={() => onAnswer("declined", reply)}><X className="size-4" aria-hidden />Decline</Button>
+          </div>
+          {suggestion.status === "accepted" && (
+            <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+              Accepting records your answer. Change the wording with Edit agreement so the intern signs the new text.
+            </p>
+          )}
+        </>
+      )}
+    </li>
   );
 }

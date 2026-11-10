@@ -110,7 +110,7 @@ export default function ContractStage({
               ? "Signed and verified by the founders. Your copy is below — print or save it for your records."
               : isSigned
                 ? "Signed. The founders verify it from their side, usually within a working day. You will be able to request your company email once they do."
-                : "Generated from the details you submitted. Read it in full, then sign at the bottom."
+                : "Generated from the details you submitted. Read it in full. If you'd like anything changed, suggest it below before signing; otherwise sign at the bottom."
           }
         />
 
@@ -191,6 +191,15 @@ export default function ContractStage({
       )}
 
       {(contract || document) && !isSigned && (
+        <SuggestChanges
+          token={token}
+          clauses={contract?.clauses.map((c) => c.heading) ?? []}
+          suggestions={candidate.contractSuggestions}
+          onSaved={onSaved}
+        />
+      )}
+
+      {(contract || document) && !isSigned && (
         <Card>
           <SectionTitle
             title="Sign the agreement"
@@ -260,5 +269,107 @@ export default function ContractStage({
         </Card>
       )}
     </div>
+  );
+}
+
+const STATUS_LABEL = { open: "Waiting for the founders", accepted: "Accepted", declined: "Not changed" } as const;
+
+/**
+ * Before signing, an intern can send the founders changes they'd like — about
+ * one clause or the whole agreement — and see each answer here. If the
+ * founders change the agreement, the new text shows above.
+ */
+function SuggestChanges({
+  token,
+  clauses,
+  suggestions,
+  onSaved,
+}: {
+  token: string;
+  clauses: string[];
+  suggestions: CandidateView["contractSuggestions"];
+  onSaved: (next: CandidateView) => void;
+}) {
+  const [clause, setClause] = useState("");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function send() {
+    setBusy(true);
+    setMessage(null);
+    const response = await fetch(`/api/onboarding/session/${token}/contract/suggestions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ clause: clause || undefined, text }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) {
+      setMessage(data.error ?? "Could not send your suggestion.");
+      return;
+    }
+    setText("");
+    setClause("");
+    onSaved(data as CandidateView);
+  }
+
+  return (
+    <Card>
+      <SectionTitle
+        title="Suggest changes"
+        lead="Something you'd like worded differently, or a question about a clause? Send it to the founders before you sign. They'll answer here, and if they change the agreement you'll see the new version above."
+      />
+
+      {suggestions.length > 0 && (
+        <ul className="mb-5 space-y-3">
+          {suggestions.map((s) => (
+            <li
+              key={s.id}
+              className="rounded-xl border p-3 text-sm"
+              style={{ borderColor: "var(--line)", backgroundColor: "var(--surface-sunken)" }}
+            >
+              <span className="block text-xs font-bold" style={{ color: "var(--fg-muted)" }}>
+                {s.clause ?? "The whole agreement"} · {formatDateTime(s.at)} · {STATUS_LABEL[s.status]}
+              </span>
+              <span className="mt-1 block whitespace-pre-wrap">{s.text}</span>
+              {s.reply && (
+                <span className="mt-2 block border-l-2 pl-3" style={{ borderColor: "var(--brand)" }}>
+                  <span className="font-bold">Founders:</span> {s.reply}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="space-y-4">
+        <Field label="About">
+          <select value={clause} onChange={(e) => setClause(e.target.value)} className={inputClass} style={inputStyle}>
+            <option value="">The whole agreement</option>
+            {clauses.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Your suggestion">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={2000}
+            rows={4}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="e.g. Could the working hours in clause 5 be 10 to 6 instead?"
+          />
+        </Field>
+        {message && <Notice tone="bad">{message}</Notice>}
+        <Button disabled={busy || !text.trim()} onClick={send}>
+          {busy ? "Sending…" : "Send to the founders"}
+        </Button>
+      </div>
+    </Card>
   );
 }

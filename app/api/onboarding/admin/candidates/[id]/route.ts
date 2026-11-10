@@ -5,7 +5,7 @@ import { buildContract } from "@/lib/onboarding/contract";
 import { companiesOf, currentStage, retentionOf } from "@/lib/onboarding/stage";
 import { formatAadhaar, formatLongDate } from "@/lib/onboarding/contract";
 import { generatePassword, maskAadhaar, offboardingCode, seal } from "@/lib/onboarding/security.server";
-import { aadhaarLast4Of, type CertificateKind } from "@/lib/onboarding/types";
+import { DEFAULT_TERM_MONTHS, MAX_TERM_MONTHS, MIN_TERM_MONTHS, aadhaarLast4Of, type Candidate, type CertificateKind } from "@/lib/onboarding/types";
 import {
   CERTIFICATE_LABEL,
   activeCertificate,
@@ -40,6 +40,35 @@ import {
   workspaceLoginUrl,
 } from "@/lib/onboarding/workspace.server";
 import { randomBytes } from "node:crypto";
+
+/**
+ * A signature only ever covers the text that was signed. When a signed
+ * agreement changes, the signature (and any countersignature) moves to
+ * supersededSignatures with the exact text it covered, and the intern is asked
+ * to sign the new version.
+ */
+function voidSignatureIfSigned(next: Candidate, reason: string): Candidate {
+  if (!next.signature) return next;
+  const now = new Date().toISOString();
+  return {
+    ...next,
+    supersededSignatures: [
+      ...(next.supersededSignatures ?? []),
+      {
+        signature: next.signature,
+        companySignature: next.companySignature,
+        contractVerifiedAt: next.contractVerifiedAt,
+        supersededAt: now,
+        reason,
+      },
+    ],
+    signature: undefined,
+    companySignature: undefined,
+    contractVerifiedAt: undefined,
+    // Shown to the intern on their agreement step.
+    contractRejection: { note: `${reason} Please read the new version and sign it again.`, at: now },
+  };
+}
 
 /** `FR-IC-2026-7K3QX9` — completion; `FR-LR-…` — recommendation letter. */
 const SERIAL_PREFIX: Record<CertificateKind, string> = {
@@ -155,6 +184,13 @@ export async function POST(
     highlights?: string;
     contactEmail?: string;
     contactPhone?: string;
+    clauses?: { heading?: unknown; body?: unknown }[];
+    recitals?: unknown[];
+    startDate?: string;
+    termMonths?: number;
+    suggestionId?: string;
+    status?: string;
+    reply?: string;
   } | null;
 
   // A removed intern's record is frozen: restore them before acting on it.
@@ -233,6 +269,80 @@ export async function POST(
         contractRejection: undefined,
       }));
       return json({ ok: true, stage: updated ? currentStage(updated) : null });
+    }
+
+    /*
+     * A founder's own wording for this intern's agreement. Allowed before and
+     * after signing. A signature only ever covers the text that was signed, so
+     * changing a signed agreement voids that signature (kept, with the text it
+     * covered, in supersededSignatures) and the intern signs the new version.
+     */
+    case "edit-contract":
+    case "reset-contract": {
+      const plan = candidate.agreement ?? { kind: "standard" as const };
+      if (plan.kind === "bespoke") {
+        return error("This intern signs an uploaded document. Upload a new version instead of editing the text.", 409);
+      }
+
+      let edits: Candidate["contractEdits"];
+      if (body.action === "edit-contract") {
+        const clauses = Array.isArray(body.clauses) ? body.clauses : null;
+        const recitals = Array.isArray(body.recitals) ? body.recitals : null;
+        if (!clauses || !recitals) return error("Send the clauses and recitals to save.");
+        const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+        const cleanClauses = clauses
+          .map((c: { heading?: unknown; body?: unknown }) => ({ heading: clean(c?.heading, 200), body: clean(c?.body, 8000) }))
+          .filter((c: { heading: string; body: string }) => c.heading && c.body);
+        const cleanRecitals = recitals.map((r: unknown) => clean(r, 4000)).filter(Boolean);
+        if (cleanClauses.length === 0) return error("An agreement needs at least one clause.");
+        if (cleanClauses.length > 60 || cleanRecitals.length > 20) return error("That agreement is too long.");
+        edits = { clauses: cleanClauses, recitals: cleanRecitals, editedAt: new Date().toISOString() };
+      }
+
+      const reason = body.reason?.trim().slice(0, 500) || "The founders updated the agreement.";
+      const updated = await updateCandidate(id, (c) => voidSignatureIfSigned({ ...c, contractEdits: edits }, reason));
+      return json({ ok: true, resigned: Boolean(candidate.signature), stage: updated ? currentStage(updated) : null });
+    }
+
+    /*
+     * The start date and term. Both are written into the agreement, so on a
+     * signed agreement this voids the signature and the intern signs again.
+     */
+    case "edit-dates": {
+      const startDate = body.startDate;
+      if (!startDate || Number.isNaN(Date.parse(startDate))) return error("Enter a valid start date.");
+      const termMonths = body.termMonths ?? candidate.termMonths ?? DEFAULT_TERM_MONTHS;
+      if (!Number.isInteger(termMonths) || termMonths < MIN_TERM_MONTHS || termMonths > MAX_TERM_MONTHS) {
+        return error(`The term has to be a whole number of months between ${MIN_TERM_MONTHS} and ${MAX_TERM_MONTHS}.`);
+      }
+      const reason = body.reason?.trim().slice(0, 500) || "The start date or term of the internship changed.";
+      const updated = await updateCandidate(id, (c) =>
+        voidSignatureIfSigned({ ...c, startDate: new Date(startDate).toISOString(), termMonths }, reason),
+      );
+      // The Workspace and CRM carry the start date too.
+      if (updated) {
+        await refreshWorkspaceAccount(updated).catch(console.error);
+        await refreshCrmAccount(updated).catch(console.error);
+      }
+      return json({ ok: true, resigned: Boolean(candidate.signature), stage: updated ? currentStage(updated) : null });
+    }
+
+    // The founders' answer to a change the intern asked for.
+    case "resolve-suggestion": {
+      const suggestionId = body.suggestionId;
+      const status = body.status;
+      if (status !== "accepted" && status !== "declined" && status !== "open") return error("Unknown answer.");
+      if (!candidate.contractSuggestions?.some((x) => x.id === suggestionId)) return error("Suggestion not found.", 404);
+      const reply = body.reply?.trim().slice(0, 2000) || undefined;
+      await updateCandidate(id, (c) => ({
+        ...c,
+        contractSuggestions: (c.contractSuggestions ?? []).map((x) =>
+          x.id === suggestionId
+            ? { ...x, status, reply, resolvedAt: status === "open" ? undefined : new Date().toISOString() }
+            : x,
+        ),
+      }));
+      return json({ ok: true });
     }
 
     case "reject": {
