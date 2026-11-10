@@ -41,6 +41,7 @@ export function toCandidateView(candidate: Candidate): CandidateView {
     companySignature: candidate.companySignature ?? null,
     contractVerifiedAt: candidate.contractVerifiedAt ?? null,
     contractRejection: candidate.contractRejection ?? null,
+    contractSuggestions: candidate.contractSuggestions ?? [],
     emailRequestedAt: candidate.emailRequestedAt ?? null,
     mailbox: candidate.mailbox
       ? {

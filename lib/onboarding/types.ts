@@ -130,6 +130,44 @@ export interface TestAttempt {
   at: string;
 }
 
+/**
+ * A founder's own wording for one intern's agreement, replacing the template's
+ * recitals and clauses. The parties, dates and execution block still come from
+ * the intern's details. See lib/onboarding/contract.ts.
+ */
+export interface ContractEdits {
+  recitals: string[];
+  clauses: { heading: string; body: string }[];
+  editedAt: string;
+  /** Set when the wording came from a founder's uploaded document, converted by the console. */
+  importedFrom?: { originalName: string; storedAs: string; importedAt: string; warnings: string[] };
+}
+
+/** A change an intern asks for before signing, and the founders' answer. */
+export interface ContractSuggestion {
+  id: string;
+  /** The clause it is about, e.g. "5. Confidentiality", or absent for the agreement overall. */
+  clause?: string;
+  text: string;
+  at: string;
+  status: "open" | "accepted" | "declined";
+  reply?: string;
+  resolvedAt?: string;
+}
+
+/**
+ * A signature that no longer stands because the agreement was changed after it
+ * was given. Kept, with the exact text that was signed, so the record shows
+ * every version anyone agreed to.
+ */
+export interface SupersededSignature {
+  signature: Signature;
+  companySignature?: CompanySignature;
+  contractVerifiedAt?: string;
+  supersededAt: string;
+  reason: string;
+}
+
 export interface Signature {
   typedName: string;
   affirmed: boolean;
@@ -336,6 +374,12 @@ export interface Candidate {
   aadhaarAccess?: AadhaarAccess[];
   contractVerifiedAt?: string;
   contractRejection?: { note: string; at: string };
+  /** This intern's own agreement wording, when a founder edited it. */
+  contractEdits?: ContractEdits;
+  /** Changes the intern asked for before signing. */
+  contractSuggestions?: ContractSuggestion[];
+  /** Earlier signatures, voided when the agreement was changed after signing. */
+  supersededSignatures?: SupersededSignature[];
   emailRequestedAt?: string;
   mailbox?: Mailbox;
   /** The Focus Realm Workspace login, created when the candidate was. */
@@ -379,6 +423,8 @@ export interface CandidateView {
   companySignature: CompanySignature | null;
   contractVerifiedAt: string | null;
   contractRejection: { note: string; at: string } | null;
+  /** The changes they asked for, with the founders' answers. */
+  contractSuggestions: ContractSuggestion[];
   emailRequestedAt: string | null;
   mailbox: { address: string; viewed: boolean } | null;
   /** Their Workspace login ID. The password itself only comes from the one-time reveal. */

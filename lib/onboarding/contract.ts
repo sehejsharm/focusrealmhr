@@ -98,8 +98,10 @@ export function buildContract(candidate: Candidate): Contract | null {
   };
 
   const duties = role.duties;
+  // A founder's own wording for this intern replaces the template's.
+  const edits = candidate.contractEdits;
 
-  return {
+  const contract: Contract = {
     title: "Internship Agreement",
     subtitle: `FocusRealm · ${role.label} Internship — Unpaid Internship · ${termMonths}-Month Term`,
     preamble: `This Internship Agreement ("Agreement") is made and entered into on this ${formatLongDate(fields.effectiveDate)} (the "Effective Date"),`,
@@ -189,6 +191,7 @@ export function buildContract(candidate: Candidate): Contract | null {
       "IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date first written above.",
     fields,
   };
+  return edits ? { ...contract, recitals: edits.recitals, clauses: edits.clauses } : contract;
 }
 
 /** Flattened text, frozen into the signature record at the moment of signing. */
@@ -209,4 +212,16 @@ export function contractToText(contract: Contract): string {
     "",
     contract.execution,
   ].join("\n");
+}
+
+/**
+ * The term clause written from the record — the start date, term and end date
+ * the console holds. Used to fill an imported agreement's term clause, so the
+ * dates the intern signs always match the record.
+ */
+export function termClauseBody(candidate: Candidate): string {
+  const termMonths = candidate.termMonths || DEFAULT_TERM_MONTHS;
+  const start = new Date(candidate.startDate);
+  const end = addMonths(start, termMonths);
+  return `The internship shall commence on ${formatLongDate(start)} and shall continue for a period of ${spellMonths(termMonths)} months, ending on or around ${formatLongDate(end)} (the "Internship Period"), unless terminated earlier in accordance with this Agreement. Any extension of the Internship Period shall be by mutual written consent of both Parties.`;
 }
