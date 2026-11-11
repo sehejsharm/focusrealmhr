@@ -1,6 +1,10 @@
 import { error, isAdmin, json } from "@/lib/onboarding/api.server";
 import { getCandidate, readUpload, saveUpload, updateCandidate } from "@/lib/onboarding/store.server";
-import type { StoredFile } from "@/lib/onboarding/types";
+import { convertAgreementText, extractAgreementText } from "@/lib/onboarding/agreement-import.server";
+import { termClauseBody } from "@/lib/onboarding/contract";
+import type { Candidate, StoredFile } from "@/lib/onboarding/types";
+
+export const maxDuration = 60;
 
 /**
  * The agreement document for a role the standard template does not cover.
@@ -54,13 +58,50 @@ export async function POST(
     storedAs,
   };
 
-  const updated = await updateCandidate(id, (c) => ({
-    ...c,
-    agreement: { kind: "bespoke", document, uploadedAt: new Date().toISOString() },
-  }));
-  if (!updated) return error("Could not save the agreement.", 500);
-
-  return json({ document: { originalName: document.originalName, bytes: document.bytes } });
+  /*
+   * Every upload is converted straight into the console's own agreement, so it
+   * keeps the standard's fixed parts — the parties ("FocusRealm (to be
+   * incorporated)", represented by its authorised signatory), the effective
+   * date, the term from the record and the signature blocks — and only its
+   * recitals and clauses come from the file. The intern then reads and signs it
+   * like the standard agreement, and founders can keep editing it. Only if the
+   * file cannot be read does the raw upload stand in, with a warning.
+   */
+  const now = new Date().toISOString();
+  try {
+    const converted = convertAgreementText(await extractAgreementText(Buffer.from(await file.arrayBuffer()), file.type));
+    const clauses = converted.clauses.map((c) =>
+      /term|duration/i.test(c.heading) ? { ...c, body: termClauseBody(candidate) } : c,
+    );
+    const warnings = clauses.some((c, i) => c !== converted.clauses[i])
+      ? ["The term clause was rewritten from the start date and term on the record.", ...converted.warnings]
+      : converted.warnings;
+    const updated = await updateCandidate(id, (c): Candidate => ({
+      ...c,
+      agreement: { kind: "standard" },
+      contractEdits: {
+        recitals: converted.recitals,
+        clauses,
+        editedAt: now,
+        importedFrom: { originalName: document.originalName, storedAs, importedAt: now, warnings },
+      },
+    }));
+    if (!updated) return error("Could not save the agreement.", 500);
+    return json({ document: { originalName: document.originalName, bytes: document.bytes }, converted: true, warnings });
+  } catch (cause) {
+    const updated = await updateCandidate(id, (c) => ({
+      ...c,
+      agreement: { kind: "bespoke", document, uploadedAt: now },
+    }));
+    if (!updated) return error("Could not save the agreement.", 500);
+    return json({
+      document: { originalName: document.originalName, bytes: document.bytes },
+      converted: false,
+      warnings: [
+        `It could not be put into the standard format (${cause instanceof Error ? cause.message : "unreadable file"}), so the intern will see the file exactly as uploaded. Upload a Word copy to have it converted.`,
+      ],
+    });
+  }
 }
 
 /** Streams the uploaded document back to the console. */
