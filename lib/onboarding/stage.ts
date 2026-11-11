@@ -42,6 +42,7 @@ export function learningComplete(candidate: Candidate): boolean {
 
 /** When the engagement ends — start date plus the agreed term. */
 export function endDateOf(candidate: Candidate): string {
+  if (candidate.endDate) return candidate.endDate;
   const end = new Date(candidate.startDate);
   end.setUTCMonth(end.getUTCMonth() + (candidate.termMonths || DEFAULT_TERM_MONTHS));
   return end.toISOString();

@@ -92,7 +92,7 @@ export function buildContract(candidate: Candidate): Contract | null {
     address: candidate.details.address,
     roleTitle: role.roleTitle,
     startDate: start,
-    endDate: addMonths(start, termMonths),
+    endDate: candidate.endDate ? new Date(candidate.endDate) : addMonths(start, termMonths),
     // The agreement takes effect when the candidate signs it.
     effectiveDate: candidate.signature ? new Date(candidate.signature.signedAt) : new Date(),
   };
@@ -222,6 +222,6 @@ export function contractToText(contract: Contract): string {
 export function termClauseBody(candidate: Candidate): string {
   const termMonths = candidate.termMonths || DEFAULT_TERM_MONTHS;
   const start = new Date(candidate.startDate);
-  const end = addMonths(start, termMonths);
+  const end = candidate.endDate ? new Date(candidate.endDate) : addMonths(start, termMonths);
   return `The internship shall commence on ${formatLongDate(start)} and shall continue for a period of ${spellMonths(termMonths)} months, ending on or around ${formatLongDate(end)} (the "Internship Period"), unless terminated earlier in accordance with this Agreement. Any extension of the Internship Period shall be by mutual written consent of both Parties.`;
 }
