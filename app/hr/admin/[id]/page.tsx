@@ -924,6 +924,9 @@ function AgreementUpload({
       setMessage(data.error ?? "Could not upload that.");
       return;
     }
+    // Uploads are converted into the standard agreement's format on arrival;
+    // say so plainly when a file could not be.
+    if (data.converted === false && data.warnings?.[0]) window.alert(data.warnings[0]);
     onDone();
   }
 
@@ -931,7 +934,7 @@ function AgreementUpload({
     <form onSubmit={submit} className="space-y-3">
       <Field
         label={replacing ? "Replace the document" : "Agreement or job description"}
-        hint="PDF or Word, up to 12 MB. Stored privately, alongside identity documents."
+        hint="PDF or Word, up to 12 MB. Put straight into the standard agreement's format — parties, Focus Realm (to be incorporated), authorised signatory, dates and signatures from the record; its clauses from your file, editable here — then sent to the intern to sign."
       >
         <div
           className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-4"
