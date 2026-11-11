@@ -344,6 +344,11 @@ export interface Candidate {
   customTrack?: TrackDefinition;
   /** Length of the engagement in months. Written into the agreement. */
   termMonths: number;
+  /**
+   * An exact last date a founder set, overriding start date + termMonths
+   * wherever the end of the internship is used (ISO, midnight UTC).
+   */
+  endDate?: string;
   /** Which agreement this candidate signs, and whether it is ready to sign. */
   agreement: AgreementPlan;
   /**

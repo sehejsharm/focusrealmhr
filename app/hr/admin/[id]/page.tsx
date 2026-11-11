@@ -154,7 +154,7 @@ function CandidateRecord() {
   const frozen = Boolean(candidate.removal);
   const consent = details?.consent ?? null;
   const termMonths = candidate.termMonths || DEFAULT_TERM_MONTHS;
-  const endDate = (() => {
+  const endDate = candidate.endDate ?? (() => {
     const end = new Date(candidate.startDate);
     end.setUTCMonth(end.getUTCMonth() + termMonths);
     return end.toISOString();
@@ -1913,6 +1913,7 @@ function AgreementEditor({
   const bespokeDoc = candidate.agreement?.kind === "bespoke" ? candidate.agreement.document : undefined;
   const [startDate, setStartDate] = useState(candidate.startDate.slice(0, 10));
   const [termMonths, setTermMonths] = useState(String(candidate.termMonths ?? DEFAULT_TERM_MONTHS));
+  const [endDate, setEndDate] = useState(candidate.endDate?.slice(0, 10) ?? "");
   const [reason, setReason] = useState("");
   const [editing, setEditing] = useState(false);
   const [recitals, setRecitals] = useState<string[]>([]);
@@ -1953,20 +1954,23 @@ function AgreementEditor({
       <div className="space-y-6">
         {/* Dates */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold">Start date and term</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <h3 className="text-sm font-bold">Start date, term and end date</h3>
+          <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Start date">
               <input type="date" value={startDate} disabled={frozen} onChange={(e) => setStartDate(e.target.value)} className={inputClass} style={inputStyle} />
             </Field>
             <Field label="Term (months)">
               <input type="number" min={1} max={24} value={termMonths} disabled={frozen} onChange={(e) => setTermMonths(e.target.value)} className={inputClass} style={inputStyle} />
             </Field>
+            <Field label="End date (optional)" hint="Leave empty to end the term months after the start.">
+              <input type="date" value={endDate} min={startDate} disabled={frozen} onChange={(e) => setEndDate(e.target.value)} className={inputClass} style={inputStyle} />
+            </Field>
           </div>
           {!frozen && (
             <Button
               variant="ghost"
-              disabled={busy || (startDate === candidate.startDate.slice(0, 10) && Number(termMonths) === (candidate.termMonths ?? DEFAULT_TERM_MONTHS))}
-              onClick={() => run({ action: "edit-dates", startDate, termMonths: Number(termMonths), reason: reason || undefined })}
+              disabled={busy || (startDate === candidate.startDate.slice(0, 10) && Number(termMonths) === (candidate.termMonths ?? DEFAULT_TERM_MONTHS) && endDate === (candidate.endDate?.slice(0, 10) ?? ""))}
+              onClick={() => run({ action: "edit-dates", startDate, termMonths: Number(termMonths), endDate: endDate || null, reason: reason || undefined })}
             >
               {busy ? "Saving…" : signed ? "Save dates (intern signs again)" : "Save dates"}
             </Button>

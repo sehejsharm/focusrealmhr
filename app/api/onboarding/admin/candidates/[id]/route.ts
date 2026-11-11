@@ -188,6 +188,7 @@ export async function POST(
     recitals?: unknown[];
     startDate?: string;
     termMonths?: number;
+    endDate?: string | null;
     suggestionId?: string;
     status?: string;
     reply?: string;
@@ -315,9 +316,16 @@ export async function POST(
       if (!Number.isInteger(termMonths) || termMonths < MIN_TERM_MONTHS || termMonths > MAX_TERM_MONTHS) {
         return error(`The term has to be a whole number of months between ${MIN_TERM_MONTHS} and ${MAX_TERM_MONTHS}.`);
       }
-      const reason = body.reason?.trim().slice(0, 500) || "The start date or term of the internship changed.";
+      // An exact end date, if given, overrides start + term; empty clears it.
+      let endDate: string | undefined;
+      if (body.endDate) {
+        if (Number.isNaN(Date.parse(body.endDate))) return error("Enter a valid end date.");
+        if (Date.parse(body.endDate) <= Date.parse(startDate)) return error("The end date has to be after the start date.");
+        endDate = new Date(body.endDate).toISOString();
+      }
+      const reason = body.reason?.trim().slice(0, 500) || "The dates of the internship changed.";
       const updated = await updateCandidate(id, (c) =>
-        voidSignatureIfSigned({ ...c, startDate: new Date(startDate).toISOString(), termMonths }, reason),
+        voidSignatureIfSigned({ ...c, startDate: new Date(startDate).toISOString(), termMonths, endDate }, reason),
       );
       // The Workspace and CRM carry the start date too.
       if (updated) {
