@@ -379,6 +379,8 @@ export interface Candidate {
   aadhaarAccess?: AadhaarAccess[];
   contractVerifiedAt?: string;
   contractRejection?: { note: string; at: string };
+  /** The founders changed the agreement before it was signed — shown to the intern until they sign. */
+  contractUpdate?: { note: string; at: string };
   /** This intern's own agreement wording, when a founder edited it. */
   contractEdits?: ContractEdits;
   /** Changes the intern asked for before signing. */
@@ -428,6 +430,8 @@ export interface CandidateView {
   companySignature: CompanySignature | null;
   contractVerifiedAt: string | null;
   contractRejection: { note: string; at: string } | null;
+  /** The founders updated the agreement since they last saw it. */
+  contractUpdate: { note: string; at: string } | null;
   /** The changes they asked for, with the founders' answers. */
   contractSuggestions: ContractSuggestion[];
   emailRequestedAt: string | null;

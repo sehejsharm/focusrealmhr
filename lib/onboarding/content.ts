@@ -40,8 +40,8 @@ export const RESOURCES: Resource[] = [
     title: "Intern Onboarding & Company Handbook",
     subtitle: "Focus Realm",
     summary:
-      "The company, both product lines, how we sell, and the language rules that are non-negotiable. Read it start to finish before you attempt the assessment.",
-    meta: "PDF · 22 pages · 17 sections",
+      "Edition 2 (November 2026). The company, Mise and Focus Realm Education, how the sales team works, and the naming and language rules that are non-negotiable. Read it start to finish before you attempt the assessment.",
+    meta: "PDF · 25 pages · 17 sections · Edition 2",
     file: "handbooks/focus-realm-handbook.pdf",
   },
   {

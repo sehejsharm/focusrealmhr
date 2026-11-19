@@ -1,3 +1,4 @@
+import { applyAgreementChange } from "@/lib/onboarding/agreement-change";
 import { error, isAdmin, json } from "@/lib/onboarding/api.server";
 import { getCandidate, readUpload, saveUpload, updateCandidate } from "@/lib/onboarding/store.server";
 import { convertAgreementText, extractAgreementText } from "@/lib/onboarding/agreement-import.server";
@@ -33,9 +34,8 @@ export async function POST(
   if (candidate.removal) {
     return error("This person has been removed. Restore them before making changes.", 409);
   }
-  if (candidate.signature) {
-    return error("This candidate has already signed — the agreement cannot be replaced.", 409);
-  }
+  // A revised agreement after signing is allowed: applyAgreementChange keeps
+  // the earlier signature with the text it covered, and the intern signs again.
 
   const form = await request.formData();
   const file = form.get("document");
@@ -68,6 +68,10 @@ export async function POST(
    * file cannot be read does the raw upload stand in, with a warning.
    */
   const now = new Date().toISOString();
+  const noteField = form.get("reason");
+  const reason =
+    (typeof noteField === "string" && noteField.trim().slice(0, 500)) ||
+    "The founders uploaded a revised agreement.";
   try {
     const converted = convertAgreementText(await extractAgreementText(Buffer.from(await file.arrayBuffer()), file.type));
     const clauses = converted.clauses.map((c) =>
@@ -76,7 +80,7 @@ export async function POST(
     const warnings = clauses.some((c, i) => c !== converted.clauses[i])
       ? ["The term clause was rewritten from the start date and term on the record.", ...converted.warnings]
       : converted.warnings;
-    const updated = await updateCandidate(id, (c): Candidate => ({
+    const updated = await updateCandidate(id, (c): Candidate => applyAgreementChange({
       ...c,
       agreement: { kind: "standard" },
       contractEdits: {
@@ -85,14 +89,13 @@ export async function POST(
         editedAt: now,
         importedFrom: { originalName: document.originalName, storedAs, importedAt: now, warnings },
       },
-    }));
+    }, reason));
     if (!updated) return error("Could not save the agreement.", 500);
     return json({ document: { originalName: document.originalName, bytes: document.bytes }, converted: true, warnings });
   } catch (cause) {
-    const updated = await updateCandidate(id, (c) => ({
-      ...c,
-      agreement: { kind: "bespoke", document, uploadedAt: now },
-    }));
+    const updated = await updateCandidate(id, (c) =>
+      applyAgreementChange({ ...c, agreement: { kind: "bespoke", document, uploadedAt: now } }, reason),
+    );
     if (!updated) return error("Could not save the agreement.", 500);
     return json({
       document: { originalName: document.originalName, bytes: document.bytes },

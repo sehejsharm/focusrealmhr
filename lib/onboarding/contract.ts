@@ -191,7 +191,7 @@ export function buildContract(candidate: Candidate): Contract | null {
       "IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date first written above.",
     fields,
   };
-  return edits ? { ...contract, recitals: edits.recitals, clauses: edits.clauses } : contract;
+  return edits ? { ...contract, recitals: edits.recitals.length > 0 ? edits.recitals : contract.recitals, clauses: edits.clauses } : contract;
 }
 
 /** Flattened text, frozen into the signature record at the moment of signing. */

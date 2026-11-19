@@ -302,10 +302,14 @@ function CandidateRecord() {
           />
 
           {plan.kind === "standard" ? (
-            <Notice tone="good">
-              Ready to sign. Every clause matches the Founder&apos;s Office agreement —
-              only the role title, the duties and the term differ.
-            </Notice>
+            <div className="space-y-4">
+              <Notice tone="good">
+                {candidate.contractEdits
+                  ? "Ready to sign — this intern's own wording, in the standard agreement's format."
+                  : "Ready to sign. Every clause matches the Founder's Office agreement — only the role title, the duties and the term differ."}
+              </Notice>
+              {!frozen && <AgreementUpload id={id} onDone={load} replacing signed={Boolean(candidate.signature)} />}
+            </div>
           ) : bespokeDocument ? (
             <div className="space-y-4">
               <Notice tone="good">
@@ -326,9 +330,7 @@ function CandidateRecord() {
                 Open {bespokeDocument.originalName}
                 <ExternalLink className="size-4" aria-hidden />
               </a>
-              {!candidate.signature && !frozen && (
-                <AgreementUpload id={id} onDone={load} replacing />
-              )}
+              {!frozen && <AgreementUpload id={id} onDone={load} replacing signed={Boolean(candidate.signature)} />}
             </div>
           ) : (
             <div className="space-y-4">
@@ -900,10 +902,13 @@ function AgreementUpload({
   id,
   onDone,
   replacing,
+  signed,
 }: {
   id: string;
   onDone: () => void;
   replacing?: boolean;
+  /** The intern has signed: a revised upload means they sign again. */
+  signed?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -933,7 +938,7 @@ function AgreementUpload({
   return (
     <form onSubmit={submit} className="space-y-3">
       <Field
-        label={replacing ? "Replace the document" : "Agreement or job description"}
+        label={replacing ? "Upload a revised agreement" : "Agreement or job description"}
         hint="PDF or Word, up to 12 MB. Put straight into the standard agreement's format — parties, Focus Realm (to be incorporated), authorised signatory, dates and signatures from the record; its clauses from your file, editable here — then sent to the intern to sign."
       >
         <div
@@ -951,10 +956,23 @@ function AgreementUpload({
         </div>
       </Field>
 
+      {replacing && (
+        <Field label="What changed (the intern sees this)" hint="Optional — e.g. the changes they asked for.">
+          <input name="reason" maxLength={500} className={inputClass} style={inputStyle} placeholder="Updated clause 5 as you suggested" />
+        </Field>
+      )}
+
+      {signed && (
+        <Notice tone="warn">
+          They have already signed. Uploading a revised agreement sets their signature aside — kept on the record with
+          the text it covered — and sends the new version back to them to sign.
+        </Notice>
+      )}
+
       {message && <Notice tone="bad">{message}</Notice>}
 
       <Button type="submit" disabled={busy}>
-        {busy ? "Uploading…" : replacing ? "Replace document" : "Upload agreement"}
+        {busy ? "Uploading…" : replacing ? "Upload and send to the intern" : "Upload agreement"}
       </Button>
     </form>
   );

@@ -138,6 +138,7 @@ export async function POST(
     signature,
     // A fresh signature clears any earlier rejection note.
     contractRejection: undefined,
+    contractUpdate: undefined,
   }));
   if (!updated) return error("Could not record your signature.", 500);
 

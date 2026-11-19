@@ -114,6 +114,15 @@ export default function ContractStage({
           }
         />
 
+        {candidate.contractUpdate && !isSigned && (
+          <div className="mb-5">
+            <Notice tone="info">
+              The founders updated your agreement on {formatDateTime(candidate.contractUpdate.at)}:{" "}
+              {candidate.contractUpdate.note} Read it again below before you sign.
+            </Notice>
+          </div>
+        )}
+
         {candidate.contractRejection && (
           <div className="mb-5">
             <Notice tone="bad">
