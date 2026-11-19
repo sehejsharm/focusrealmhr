@@ -40,35 +40,8 @@ import {
   workspaceLoginUrl,
 } from "@/lib/onboarding/workspace.server";
 import { randomBytes } from "node:crypto";
+import { applyAgreementChange } from "@/lib/onboarding/agreement-change";
 
-/**
- * A signature only ever covers the text that was signed. When a signed
- * agreement changes, the signature (and any countersignature) moves to
- * supersededSignatures with the exact text it covered, and the intern is asked
- * to sign the new version.
- */
-function voidSignatureIfSigned(next: Candidate, reason: string): Candidate {
-  if (!next.signature) return next;
-  const now = new Date().toISOString();
-  return {
-    ...next,
-    supersededSignatures: [
-      ...(next.supersededSignatures ?? []),
-      {
-        signature: next.signature,
-        companySignature: next.companySignature,
-        contractVerifiedAt: next.contractVerifiedAt,
-        supersededAt: now,
-        reason,
-      },
-    ],
-    signature: undefined,
-    companySignature: undefined,
-    contractVerifiedAt: undefined,
-    // Shown to the intern on their agreement step.
-    contractRejection: { note: `${reason} Please read the new version and sign it again.`, at: now },
-  };
-}
 
 /** `FR-IC-2026-7K3QX9` — completion; `FR-LR-…` — recommendation letter. */
 const SERIAL_PREFIX: Record<CertificateKind, string> = {
@@ -301,7 +274,7 @@ export async function POST(
       }
 
       const reason = body.reason?.trim().slice(0, 500) || "The founders updated the agreement.";
-      const updated = await updateCandidate(id, (c) => voidSignatureIfSigned({ ...c, contractEdits: edits }, reason));
+      const updated = await updateCandidate(id, (c) => applyAgreementChange({ ...c, contractEdits: edits }, reason));
       return json({ ok: true, resigned: Boolean(candidate.signature), stage: updated ? currentStage(updated) : null });
     }
 
@@ -325,7 +298,7 @@ export async function POST(
       }
       const reason = body.reason?.trim().slice(0, 500) || "The dates of the internship changed.";
       const updated = await updateCandidate(id, (c) =>
-        voidSignatureIfSigned({ ...c, startDate: new Date(startDate).toISOString(), termMonths, endDate }, reason),
+        applyAgreementChange({ ...c, startDate: new Date(startDate).toISOString(), termMonths, endDate }, reason),
       );
       // The Workspace and CRM carry the start date too.
       if (updated) {
