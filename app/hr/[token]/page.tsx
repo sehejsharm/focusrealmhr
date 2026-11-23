@@ -326,7 +326,7 @@ function Shell({
   );
 }
 
-/** The offer letter the Chairman approved on request — a watermarked PDF on the letterhead. */
+/** The offer letter a founder approved on request — a watermarked PDF on the letterhead. */
 function OfferLetterCard({ token, offer }: { token: string; offer: { serial: string; issuedAt: string } }) {
   return (
     <Card>

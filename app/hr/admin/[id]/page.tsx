@@ -1348,7 +1348,7 @@ function Certificates({
         </div>
       )}
 
-      {/* On request, at any time, for any intern past or present — approved by the Chairman. */}
+      {/* On request, at any time, for any intern past or present — approved by a founder. */}
       <div className="mt-5 space-y-2">
         <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
           On request
@@ -1412,7 +1412,7 @@ function CertificatePanel({
 
   const [typedName, setTypedName] = useState("");
   const isOffer = kind === "offer-letter";
-  const [designation, setDesignation] = useState(isOffer ? "Chairman" : "Co-Founder");
+  const [designation, setDesignation] = useState("Co-Founder");
   const [highlights, setHighlights] = useState("");
   const [contactEmail, setContactEmail] = useState<string>(LETTERHEAD.email);
   const [contactPhone, setContactPhone] = useState<string>(LETTERHEAD.phone);
@@ -1601,7 +1601,7 @@ function CertificatePanel({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={isOffer ? "Chairman's full name" : "Approving founder's full name"} hint="Printed as the signature.">
+        <Field label="Approving founder's full name" hint="Printed as the signature.">
           <input
             value={typedName}
             onChange={(e) => setTypedName(e.target.value)}

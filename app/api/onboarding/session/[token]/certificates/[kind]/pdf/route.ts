@@ -5,7 +5,7 @@ import { renderCertificatePdf } from "@/lib/onboarding/certificate-pdf.server";
 
 /**
  * The intern's own copy of their offer letter, from their onboarding link —
- * only once the Chairman has approved one on request. End-of-internship
+ * only once a founder has approved one on request. End-of-internship
  * documents are handed over at offboarding instead.
  */
 export async function GET(

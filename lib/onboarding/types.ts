@@ -442,7 +442,7 @@ export interface CandidateView {
   crm: { loginId: string; viewed: boolean; crmRole: string | null } | null;
   /** Added directly as an existing employee — there was no onboarding. */
   existing: boolean;
-  /** Their offer letter, once the Chairman has approved one on request. */
+  /** Their offer letter, once a founder has approved one on request. */
   offerLetter: { serial: string; issuedAt: string } | null;
 }
 

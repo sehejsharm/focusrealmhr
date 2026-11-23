@@ -34,7 +34,7 @@ export const CERTIFICATE_KINDS: CertificateKind[] = ["completion", "completion-l
 
 /**
  * The offer letter is not an end-of-internship document: it is issued only on
- * request, at any time, for any intern past or present, once the Chairman
+ * request, at any time, for any intern past or present, once a founder
  * approves it. It never appears among the planned documents above.
  */
 export const ON_REQUEST_KINDS: CertificateKind[] = ["offer-letter"];
