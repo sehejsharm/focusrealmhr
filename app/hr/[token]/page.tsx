@@ -129,6 +129,7 @@ function Onboarding({
         {candidate.crm && at >= stageIndex("email") && (
           <WorkspaceAccess token={token} workspace={candidate.crm} system="crm" />
         )}
+        {candidate.offerLetter && <OfferLetterCard token={token} offer={candidate.offerLetter} />}
       </div>
 
       <Footer />
@@ -216,6 +217,7 @@ function EmployeeHome({
 
         {candidate.workspace && <WorkspaceAccess token={token} workspace={candidate.workspace} />}
         {candidate.crm && <WorkspaceAccess token={token} workspace={candidate.crm} system="crm" />}
+        {candidate.offerLetter && <OfferLetterCard token={token} offer={candidate.offerLetter} />}
 
         {!candidate.existing && (
           <details className="group rounded-2xl border border-line bg-surface shadow-sm">
@@ -321,5 +323,24 @@ function Shell({
       </div>
       {children}
     </div>
+  );
+}
+
+/** The offer letter the Chairman approved on request — a watermarked PDF on the letterhead. */
+function OfferLetterCard({ token, offer }: { token: string; offer: { serial: string; issuedAt: string } }) {
+  return (
+    <Card>
+      <SectionTitle
+        title="Your offer letter"
+        lead={`Issued ${new Date(offer.issuedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} on the Focus Realm letterhead · ${offer.serial}.`}
+      />
+      <a
+        href={`/api/onboarding/session/${token}/certificates/offer-letter/pdf`}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold"
+        style={{ backgroundColor: "var(--brand-solid)", color: "var(--brand-fg)" }}
+      >
+        Download PDF
+      </a>
+    </Card>
   );
 }

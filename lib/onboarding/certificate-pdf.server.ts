@@ -254,7 +254,13 @@ async function renderLetter(issued: IssuedCertificate): Promise<Uint8Array> {
   page.drawText(ref, { x: MARGIN_X + WIDTH - fonts.sans.widthOfTextAtSize(ref, 9.5), y, size: 9.5, font: fonts.sans, color: MUTED });
   y -= LEADING * 2.2;
 
-  if (text.subject) {
+  if (text.kind === "offer-letter") {
+    // A letter to the intern: their name, then the subject, then "Dear …".
+    write(text.recipientName, fonts.sansBold, 0, NAVY, false);
+    write(text.roleTitle, fonts.sans, LEADING * 0.7, INK, false);
+    write(`Subject: ${text.subject ?? text.title}`, fonts.sansBold, LEADING * 0.5, NAVY, false);
+    if (text.salutation) write(text.salutation, fonts.sans, 6, INK, false);
+  } else if (text.subject) {
     // The current, formal wording: an addressee line and a subject.
     const addressee = ascii((text.salutation ?? "To Whom It May Concern").toUpperCase());
     const width = fonts.sansBold.widthOfTextAtSize(addressee, 11);

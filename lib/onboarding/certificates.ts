@@ -32,7 +32,15 @@ export const CERTIFICATE_WINDOW_DAYS = 10;
 
 export const CERTIFICATE_KINDS: CertificateKind[] = ["completion", "completion-letter", "recommendation"];
 
+/**
+ * The offer letter is not an end-of-internship document: it is issued only on
+ * request, at any time, for any intern past or present, once the Chairman
+ * approves it. It never appears among the planned documents above.
+ */
+export const ON_REQUEST_KINDS: CertificateKind[] = ["offer-letter"];
+
 export const CERTIFICATE_LABEL: Record<CertificateKind, string> = {
+  "offer-letter": "Offer letter",
   completion: "Certificate of internship completion",
   "completion-letter": "Internship completion letter",
   recommendation: "Letter of recommendation",
@@ -44,6 +52,7 @@ export function documentNoun(kind: CertificateKind): string {
 }
 
 const TITLE: Record<CertificateKind, string> = {
+  "offer-letter": "Offer Letter",
   completion: "Certificate of Internship Completion",
   "completion-letter": "Internship Completion Letter",
   recommendation: "Letter of Recommendation",
@@ -56,7 +65,7 @@ const TITLE: Record<CertificateKind, string> = {
 export const CERTIFICATE_TEMPLATE = 2;
 
 export function isCertificateKind(value: unknown): value is CertificateKind {
-  return value === "completion" || value === "completion-letter" || value === "recommendation";
+  return value === "completion" || value === "completion-letter" || value === "recommendation" || value === "offer-letter";
 }
 
 /** Whether an issued document was drafted with an earlier wording than today's. */
@@ -203,6 +212,22 @@ export function draftCertificate(
   };
   const letter = { ...base, signatory, salutation: "To Whom It May Concern", closing: "Yours faithfully," };
 
+  if (kind === "offer-letter") {
+    return {
+      ...letter,
+      salutation: `Dear ${first},`,
+      closing: "Yours sincerely,",
+      subject: `Offer of internship — ${role.roleTitle}`,
+      paragraphs: [
+        `We are pleased to offer you an internship with Focus Realm as ${role.roleTitle}. The internship is for a term of ${months} months, commencing on ${start} and ending on ${end}${across}.`,
+        `In this role you will be responsible for ${role.duties}. This is an unpaid internship, undertaken for training and professional development; it does not create an employer-employee relationship.`,
+        "This offer is subject to the terms of your Internship Agreement with Focus Realm, which governs the engagement in full, and to the confidentiality and conduct obligations set out in it.",
+        "We look forward to working with you and wish you a rewarding internship.",
+        `This letter may be verified with Focus Realm at ${signatory.contactPhone} or ${signatory.contactEmail}, quoting reference number ${options.serial}.`,
+      ],
+    };
+  }
+
   if (kind === "completion-letter") {
     return {
       ...letter,
@@ -251,6 +276,7 @@ export function certificateFilename(kind: CertificateKind, fullName: string): st
   const prefix: Record<CertificateKind, string> = {
     completion: "Internship-Completion-Certificate",
     "completion-letter": "Internship-Completion-Letter",
+    "offer-letter": "Offer-Letter",
     recommendation: "Letter-of-Recommendation",
   };
   return `${prefix[kind]}-${slug || "Intern"}.pdf`;
