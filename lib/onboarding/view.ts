@@ -1,3 +1,4 @@
+import { activeCertificate } from "./certificates";
 import { companiesOf, currentStage, endDateOf } from "./stage";
 import type { Candidate, CandidateView } from "./types";
 import { DEFAULT_TERM_MONTHS, aadhaarLast4Of, trackOf } from "./types";
@@ -69,5 +70,9 @@ export function toCandidateView(candidate: Candidate): CandidateView {
           }
         : null,
     existing: Boolean(candidate.existing),
+    offerLetter: (() => {
+      const offer = activeCertificate(candidate, "offer-letter");
+      return offer ? { serial: offer.serial, issuedAt: offer.issuedAt } : null;
+    })(),
   };
 }

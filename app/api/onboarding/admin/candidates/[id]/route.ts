@@ -47,6 +47,7 @@ import { applyAgreementChange } from "@/lib/onboarding/agreement-change";
 const SERIAL_PREFIX: Record<CertificateKind, string> = {
   completion: "IC",
   "completion-letter": "CL",
+  "offer-letter": "OL",
   recommendation: "LR",
 };
 
@@ -386,7 +387,9 @@ export async function POST(
       const kind = body.kind;
       if (!isCertificateKind(kind)) return error("Choose which document to approve.");
 
-      const timing = certificateWindow(candidate);
+      // The offer letter is issued on request at any time, for any intern;
+      // the end-of-internship documents wait for the last days of the term.
+      const timing = kind === "offer-letter" ? ({ status: "open" } as const) : certificateWindow(candidate);
       if (timing.status === "not-eligible") return error(timing.reason, 409);
       if (timing.status === "not-yet") {
         return error(

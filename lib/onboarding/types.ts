@@ -224,7 +224,7 @@ export interface ExistingMember {
  *   internship, its role and length, with whom to contact to verify it.
  * - recommendation: the letter of recommendation, on the letterhead.
  */
-export type CertificateKind = "completion" | "completion-letter" | "recommendation";
+export type CertificateKind = "completion" | "completion-letter" | "recommendation" | "offer-letter";
 
 /**
  * Everything printed on an issued document, frozen at the moment a founder
@@ -442,6 +442,8 @@ export interface CandidateView {
   crm: { loginId: string; viewed: boolean; crmRole: string | null } | null;
   /** Added directly as an existing employee — there was no onboarding. */
   existing: boolean;
+  /** Their offer letter, once a founder has approved one on request. */
+  offerLetter: { serial: string; issuedAt: string } | null;
 }
 
 export type CertificateWindow =

@@ -1348,6 +1348,24 @@ function Certificates({
         </div>
       )}
 
+      {/* On request, at any time, for any intern past or present — approved by a founder. */}
+      <div className="mt-5 space-y-2">
+        <p className="text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
+          On request
+        </p>
+        <CertificatePanel
+          id={id}
+          kind="offer-letter"
+          candidate={candidate}
+          canIssue
+          frozen={false}
+          onIssue={(fields) => onIssue("offer-letter", fields)}
+          onWithdraw={(reason) => onWithdraw("offer-letter", reason)}
+          onDecline={() => onDecline("offer-letter")}
+          onUndoDecline={() => onUndoDecline("offer-letter")}
+        />
+      </div>
+
       {history.length > 0 && (
         <div className="mt-5 border-t pt-4 border-line">
           <p className="mb-2 text-xs font-bold tracking-wide uppercase" style={{ color: "var(--fg-muted)" }}>
@@ -1393,6 +1411,7 @@ function CertificatePanel({
   const name = candidate.details?.fullName ?? candidate.invitedName;
 
   const [typedName, setTypedName] = useState("");
+  const isOffer = kind === "offer-letter";
   const [designation, setDesignation] = useState("Co-Founder");
   const [highlights, setHighlights] = useState("");
   const [contactEmail, setContactEmail] = useState<string>(LETTERHEAD.email);
@@ -1417,8 +1436,10 @@ function CertificatePanel({
         </p>
         <Notice tone="good">
           Approved by {issued.approvedBy.typedName}, {issued.approvedBy.designation}, on{" "}
-          {formatDateTime(issued.issuedAt)} · {issued.serial}. {name} downloads it at the end of
-          offboarding.
+          {formatDateTime(issued.issuedAt)} · {issued.serial}.{" "}
+          {isOffer
+            ? `${name} can download it from their onboarding page.`
+            : `${name} downloads it at the end of offboarding.`}
         </Notice>
         {isLetter && hasEarlierWording(issued.text) && (
           <Notice tone="warn">
@@ -1629,19 +1650,21 @@ function CertificatePanel({
         <Check className="size-4" aria-hidden />
         {busy ? "Issuing…" : `Approve and issue ${documentNoun(kind)}`}
       </Button>
-      <Button
-        variant="ghost"
-        className="ml-3"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          await onDecline();
-          setBusy(false);
-        }}
-      >
-        <X className="size-4" aria-hidden />
-        Not issuing this
-      </Button>
+      {!isOffer && (
+        <Button
+          variant="ghost"
+          className="ml-3"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await onDecline();
+            setBusy(false);
+          }}
+        >
+          <X className="size-4" aria-hidden />
+          Not issuing this
+        </Button>
+      )}
     </div>
   );
 }
