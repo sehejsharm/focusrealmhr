@@ -373,6 +373,7 @@ function AdminConsole() {
       )}
 
       {rows && <WorkspaceSync onSynced={load} />}
+      {rows && <CopyRecordsToD1 />}
       {rows && <CopyFilesToR2 />}
     </div>
   );
@@ -1011,15 +1012,41 @@ function CopyFilesToR2() {
     setBusy(false);
   }
 
+  async function freeSpace() {
+    if (!window.confirm("Delete the Supabase copies of files that are already safely in Cloudflare R2? Files not yet in R2 are kept.")) return;
+    setBusy(true);
+    setMessage(null);
+    setFailures([]);
+    let deleted = 0;
+    for (;;) {
+      const response = await fetch("/api/onboarding/admin/storage/free-supabase", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(data.error ?? "Could not free the space.");
+        break;
+      }
+      deleted += data.deleted;
+      setFailures(data.failed);
+      setProgress(
+        `${deleted} removed from Supabase · ${data.keptNotInR2} kept (not in R2 yet — copy them first) · ${data.remaining} still on Supabase`,
+      );
+      if (data.deleted === 0) break;
+    }
+    setBusy(false);
+  }
+
   return (
     <Card className="mt-5">
       <SectionTitle
         title="Move older files to Cloudflare R2"
-        lead="New Aadhaar copies and agreements already go to R2. This copies the older ones across from Supabase, checks each one, and deletes nothing. Safe to run again — anything already copied is skipped."
+        lead="New Aadhaar copies and agreements already go to R2. This copies the older ones across from Supabase, checks each one, and deletes nothing. Then step 2 deletes the Supabase copies — only of files R2 holds at exactly the same size. Both are safe to run again."
       />
       <div className="space-y-4">
         <Button disabled={busy} onClick={run}>
-          {busy ? "Copying…" : "Copy older files to R2"}
+          {busy ? "Working…" : "1. Copy older files to R2"}
+        </Button>{" "}
+        <Button disabled={busy} onClick={freeSpace}>
+          2. Free up Supabase space
         </Button>
         {progress && <Notice tone={failures.length > 0 ? "warn" : "good"}>{progress}</Notice>}
         {message && <Notice tone="bad">{message}</Notice>}
@@ -1032,6 +1059,69 @@ function CopyFilesToR2() {
             ))}
           </ul>
         )}
+      </div>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Moving records to Cloudflare D1                                            */
+/* -------------------------------------------------------------------------- */
+
+interface RecordCopyReport {
+  total: number;
+  copied: number;
+  alreadyThere: number;
+  onlyOnD1: number;
+  verified: boolean;
+  mismatched: { id: string; name: string; problem: string }[];
+  usingD1: boolean;
+}
+
+/** Copies every record to D1 and checks each one. Deletes nothing. */
+function CopyRecordsToD1() {
+  const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<RecordCopyReport | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setMessage(null);
+    const response = await fetch("/api/onboarding/admin/storage/copy-records-to-d1", { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) setReport(data as RecordCopyReport);
+    else setMessage(data.error ?? "Could not copy the records.");
+    setBusy(false);
+  }
+
+  return (
+    <Card className="mt-5">
+      <SectionTitle
+        title="Move records to Cloudflare D1"
+        lead="Copies every candidate record from Supabase to Cloudflare D1, then reads each one back and compares it. Deletes nothing. Run it again right before switching over to pick up the latest changes."
+      />
+      <div className="space-y-4">
+        <Button disabled={busy} onClick={run}>
+          {busy ? "Copying and checking…" : "Copy records to D1 and verify"}
+        </Button>
+        {report && (
+          <Notice tone={report.verified ? "good" : "bad"}>
+            {report.verified ? "Verified: all " : "NOT verified — do not switch yet. "}
+            {report.total} records · {report.copied} copied this run · {report.alreadyThere} already identical
+            {report.onlyOnD1 > 0 ? ` · ${report.onlyOnD1} only on D1` : ""} · the console is reading from{" "}
+            {report.usingD1 ? "D1" : "Supabase"}.
+          </Notice>
+        )}
+        {report && report.mismatched.length > 0 && (
+          <ul className="space-y-1 text-xs" style={{ color: "var(--danger)" }}>
+            {report.mismatched.map((m) => (
+              <li key={m.id}>
+                {m.name}: {m.problem}
+              </li>
+            ))}
+          </ul>
+        )}
+        {message && <Notice tone="bad">{message}</Notice>}
       </div>
     </Card>
   );
