@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { error, json } from "@/lib/onboarding/api.server";
 import { offboardLeavers, workspaceConfigured } from "@/lib/onboarding/workspace.server";
+import { keepDatabaseAwake } from "@/lib/onboarding/store.server";
 import { crmConfigured, offboardCrmLeavers } from "@/lib/onboarding/crm.server";
 
 /** Vercel Cron sends "Authorization: Bearer <CRON_SECRET>" when CRON_SECRET is set. */
@@ -21,6 +22,8 @@ function authorised(request: Request): boolean {
  */
 export async function GET(request: Request) {
   if (!authorised(request)) return error("Not authorised.", 401);
+  // Always touch the database, connected or not: Supabase pauses idle free projects.
+  await keepDatabaseAwake();
   if (!workspaceConfigured() && !crmConfigured()) {
     return json({ ok: true, skipped: "Neither the Workspace nor the Sales CRM is connected." });
   }
