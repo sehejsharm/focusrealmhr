@@ -62,6 +62,15 @@ function columns(record: Candidate) {
 /* Reads                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The smallest possible database read. The nightly job calls it so the free
+ * Supabase project never counts as idle (it is paused after ~7 quiet days).
+ */
+export async function keepDatabaseAwake(): Promise<void> {
+  const { error } = await db().from(TABLE).select("id").limit(1);
+  if (error) throw new Error(`Supabase keep-alive failed: ${error.message}`);
+}
+
 export async function listCandidates(): Promise<Candidate[]> {
   const { data, error } = await db()
     .from(TABLE)
